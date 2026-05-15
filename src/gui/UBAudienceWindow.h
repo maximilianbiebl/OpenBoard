@@ -14,6 +14,9 @@
 #include <QMainWindow>
 #include <QPointer>
 
+#include "board/UBBoardView.h"
+#include "core/UBAudienceToolState.h"
+
 class UBBoardView;
 class UBAudienceToolState;
 class QToolBar;
