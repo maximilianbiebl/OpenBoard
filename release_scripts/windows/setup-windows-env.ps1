@@ -3,7 +3,7 @@ param(
   [string]$QtVersion = "6.6.3",
   [string]$QtArch = "msvc2022_64",
   [string]$QtBase = "C:\Qt",
-  [string[]]$QtModules = @("qtdeclarative", "qtmultimedia", "qtwebengine", "qtwebchannel", "qtpositioning", "qtsvg", "qt5compat"),
+  [string[]]$QtModules = @("qtdeclarative", "qtmultimedia", "qtwebengine", "qtwebchannel", "qtpositioning", "qtsvg", "qt5compat", "qttools"),
   [switch]$SkipQtDownload
 )
 
@@ -159,9 +159,13 @@ if (-not (Test-Path $qtQmake) -and -not $SkipQtDownload) {
   }
 }
 if (Test-Path $qtQmake) {
-  Set-UserEnv -Name "QT_DIR" -Value $qtDir
-  Set-UserEnv -Name "QT_BIN" -Value $qtBin
-  Add-PathEntry $qtBin
+    Set-UserEnv -Name "QT_DIR" -Value $qtDir
+    Set-UserEnv -Name "QT_BIN" -Value $qtBin
+    Add-PathEntry $qtBin
+    $qtLrelease = Join-Path $qtBin "lrelease.exe"
+    if (-not (Test-Path $qtLrelease)) {
+      Write-Warning "lrelease.exe not found in $qtBin. Ensure the Qt Tools module (qttools) is installed."
+    }
 } else {
   Write-Warning "Qt not found at $qtDir. Set QT_DIR to your Qt installation."
 }

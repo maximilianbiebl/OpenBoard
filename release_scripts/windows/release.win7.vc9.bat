@@ -36,6 +36,16 @@ set BASE_QT_TRANSLATIONS_DIRECTORY=%QT_DIR%\translations
 
 set PATH=%QT_BIN%;%PATH%
 
+if not exist "%QT_BIN%\qmake.exe" (
+    echo "qmake.exe not found in %QT_BIN%. Set QT_DIR/QT_BIN or run setup-windows-env.ps1"
+    GOTO EXIT_WITH_ERROR
+)
+
+if not exist "%LRELEASE%" (
+    echo "lrelease.exe not found in %QT_BIN%. Install Qt Tools (qttools) and rerun setup-windows-env.ps1"
+    GOTO EXIT_WITH_ERROR
+)
+
 echo %PATH%
 
 cd %PROJECT_ROOT%
