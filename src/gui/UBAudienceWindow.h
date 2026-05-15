@@ -17,8 +17,6 @@
 #include "board/UBBoardView.h"
 #include "core/UBAudienceToolState.h"
 
-class UBBoardView;
-class UBAudienceToolState;
 class QToolBar;
 class QAction;
 
