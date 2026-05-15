@@ -30,6 +30,8 @@
 #include "XPDFRenderer.h"
 
 #include <QtGui>
+#include <memory>
+#include <string_view>
 
 #include <frameworks/UBPlatformUtils.h>
 #include <poppler/cpp/poppler-version.h>
@@ -62,7 +64,9 @@ XPDFRenderer::XPDFRenderer(const QString &filename, bool importingFile)
         globalParams->setupBaseFonts(QFile::encodeName(UBPlatformUtils::applicationResourcesDirectory() + "/" + "fonts").data());
     }
 #if POPPLER_VERSION_MAJOR > 25 || (POPPLER_VERSION_MAJOR == 25 && POPPLER_VERSION_MINOR >= 12)
-    mDocument = new PDFDoc(std::make_unique<GooString>(static_cast<std::string_view>(filename.toLocal8Bit())));
+    const QByteArray filenameBytes = filename.toLocal8Bit();
+    const std::string_view filenameView(filenameBytes.constData(), static_cast<size_t>(filenameBytes.size()));
+    mDocument = new PDFDoc(std::make_unique<GooString>(filenameView));
 #elif POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 3)
     mDocument = new PDFDoc(std::make_unique<GooString>(filename.toLocal8Bit()));
 #else
