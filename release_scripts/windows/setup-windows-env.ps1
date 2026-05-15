@@ -141,7 +141,11 @@ if ($innoExe) {
 }
 
 Write-Section "Ensuring Qt $QtVersion ($QtArch)"
-$qtDir = if ([string]::IsNullOrWhiteSpace($env:QT_DIR)) { Join-Path $QtBase $QtVersion $QtArch } else { $env:QT_DIR }
+$qtDir = if ([string]::IsNullOrWhiteSpace($env:QT_DIR)) {
+  Join-Path (Join-Path $QtBase $QtVersion) $QtArch
+} else {
+  $env:QT_DIR
+}
 $qtBin = Join-Path $qtDir "bin"
 $qtQmake = Join-Path $qtBin "qmake.exe"
 if (-not (Test-Path $qtQmake) -and -not $SkipQtDownload) {
