@@ -25,6 +25,23 @@ On Linux, Debian is the only officially maintained platform. For other platforms
 ### Building from source
 If you didn't find any installer for your platform, or if you want to modify OpenBoard, you can find instructions on how to build OpenBoard from source on the [wiki](https://github.com/OpenBoard-org/OpenBoard/wiki/Build-OpenBoard-from-source).
 
+#### Windows installer (EXE)
+The Windows release scripts can generate an installer (`.exe`) using Inno Setup and a Qt 6.x build.
+
+1. Clone `OpenBoard-ThirdParty` next to this repository (same parent folder).
+2. Open PowerShell and run:
+   - `.\release_scripts\windows\setup-windows-env.ps1`
+   - For Qt 6.7.3: `.\release_scripts\windows\setup-windows-env.ps1 -QtVersion 6.7.3`
+3. Restart your terminal so the environment variables are picked up.
+4. Build the installer:
+   - `release_scripts\windows\release.win7.vc9.bat`
+   - If the build output already exists, you can run `release_scripts\windows\create-setup.bat` to only package it.
+5. The installer is written to `install/win32/OpenBoard_Installer_<version>.exe`.
+
+Notes:
+- The batch scripts default to Qt 6.6.3 but work with other Qt 6.x versions (including 6.7.3) as long as `QT_DIR`/`QT_BIN` point to that Qt installation.
+- `qmake.exe` and `lrelease.exe` must be available in `QT_BIN` (install the Qt Tools module `qttools`).
+
 ### Qt support
 OpenBoard can be compiled with the latest open-source binaries of Qt 6. Support for Qt 5.15 was recently dropped, but you can still build OpenBoard with it, after addressing some minor compiling issues.
 
