@@ -1,0 +1,13 @@
+Fehlerursache:
+Die Header von QuaZip (quazip.h) werden im Windows-qmake-Build aus
+..\OpenBoard-ThirdParty\quazip\ erwartet, dort sind sie bei dir nicht vorhanden.
+
+Lösung:
+1) Klone das Repository OpenBoard-ThirdParty direkt neben OpenBoard
+   (gleicher Elternordner), sodass dieser Pfad existiert:
+   ..\OpenBoard-ThirdParty\quazip\quazip.h
+2) Baue danach erneut.
+
+Alternative:
+Wenn OpenBoard-ThirdParty an einem anderen Ort liegt, passe in OpenBoard.pro
+den Wert THIRD_PARTY_PATH an, sodass er auf den richtigen Ordner zeigt.
