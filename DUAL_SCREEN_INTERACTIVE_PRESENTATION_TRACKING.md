@@ -13,7 +13,7 @@ Stand 2026-05-15 (Branch `copilot/add-dual-screen-presentation-mode`): Kernsyste
 ## 2) Fenster & Bildschirmzuweisung
 - [x] Startlogik umsetzen: aktuelles Hauptfenster = Presenter-Screen, zweiter Screen = Audience-Screen
 - [x] Fallback auf Single-Screen-Modus implementieren
-- [ ] Optionale Bildschirmauswahl vorbereiten (Dialog/Wechselmechanismus)
+- [x] Optionale Bildschirmauswahl vorbereiten (Dialog/Wechselmechanismus)
 - [x] Audience-Window als eigenes Qt-Fenster aufbauen (Fullscreen standardmäßig)
 
 ## 3) Rendering
@@ -37,8 +37,8 @@ Stand 2026-05-15 (Branch `copilot/add-dual-screen-presentation-mode`): Kernsyste
 - [x] Reset/Focus-Funktion umsetzen (Audience auf Fit-to-Page/Seitenfokus zurücksetzen)
 
 ## 6) Presenter Control Panel
-- [ ] Neues Presenter-Control-Panel integrieren (Start/Stop, Tool-Toggles, Seitennavigation)
-- [ ] Optionale Controls vorbereiten (Audience-Freeze, Bildschirmzuweisung, Audience-Vorschau)
+- [x] Neues Presenter-Control-Panel integrieren (Start/Stop, Tool-Toggles, Seitennavigation)
+- [x] Optionale Controls vorbereiten (Audience-Freeze, Bildschirmzuweisung, Audience-Vorschau)
 - [x] Live-Aktualisierung aller Presenter-Änderungen in Audience-Ansicht sicherstellen
 
 ## 7) Qualität, Stabilität, Sicherheit

@@ -24,6 +24,7 @@ class UBAudienceWindow;
 class QDockWidget;
 class QCheckBox;
 class QPushButton;
+class QComboBox;
 
 class UBPresentationManager : public QObject
 {
@@ -54,6 +55,8 @@ public slots:
 private:
     void createPresenterControls();
     void connectPresenterControls();
+    void refreshAudienceScreenSelector();
+    void applyAudienceScreenSelection();
     void applyRunningState();
     void applyAudienceToolState();
     void updateAudienceViewFrame();
@@ -74,10 +77,16 @@ private:
     QCheckBox* mMoveToggle{nullptr};
     QCheckBox* mShapeToggle{nullptr};
     QCheckBox* mZoomToggle{nullptr};
+    QCheckBox* mFreezeAudienceToggle{nullptr};
+    QComboBox* mAudienceScreenSelector{nullptr};
+    QPushButton* mPreviousPageButton{nullptr};
+    QPushButton* mNextPageButton{nullptr};
+    QPushButton* mAudiencePreviewButton{nullptr};
     QPushButton* mResetFocusButton{nullptr};
 
     bool mRunning{false};
     bool mFollowMode{true};
+    bool mAudienceFrozen{false};
 };
 
 #endif

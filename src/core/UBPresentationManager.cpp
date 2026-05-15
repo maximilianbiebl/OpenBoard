@@ -11,11 +11,14 @@
 #include "UBPresentationManager.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDockWidget>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
+#include <QWindow>
 
 #include "board/UBBoardController.h"
 #include "board/UBBoardView.h"
@@ -49,6 +52,7 @@ UBPresentationManager::UBPresentationManager(UBApplicationController* appControl
 
     createPresenterControls();
     connectPresenterControls();
+    refreshAudienceScreenSelector();
     applyAudienceToolState();
 }
 
@@ -137,6 +141,11 @@ void UBPresentationManager::createPresenterControls()
     mMoveToggle = new QCheckBox(tr("Move enabled"));
     mShapeToggle = new QCheckBox(tr("Shape enabled"));
     mZoomToggle = new QCheckBox(tr("Zoom/Pan enabled"));
+    mFreezeAudienceToggle = new QCheckBox(tr("Audience freeze (optional)"));
+    mAudienceScreenSelector = new QComboBox();
+    mPreviousPageButton = new QPushButton(tr("Previous page"));
+    mNextPageButton = new QPushButton(tr("Next page"));
+    mAudiencePreviewButton = new QPushButton(tr("Audience preview (optional)"));
     mResetFocusButton = new QPushButton(tr("Reset audience focus"));
 
     mFollowModeToggle->setChecked(true);
@@ -145,6 +154,7 @@ void UBPresentationManager::createPresenterControls()
     mMoveToggle->setChecked(true);
     mShapeToggle->setChecked(true);
     mZoomToggle->setChecked(true);
+    mAudiencePreviewButton->setEnabled(false);
 
     layout->addWidget(mStartStop);
     layout->addWidget(mFollowModeToggle);
@@ -155,6 +165,17 @@ void UBPresentationManager::createPresenterControls()
     layout->addWidget(mMoveToggle);
     layout->addWidget(mShapeToggle);
     layout->addWidget(mZoomToggle);
+    layout->addWidget(mFreezeAudienceToggle);
+    layout->addSpacing(8);
+    layout->addWidget(new QLabel(tr("Page navigation")));
+    auto* navLayout = new QHBoxLayout();
+    navLayout->addWidget(mPreviousPageButton);
+    navLayout->addWidget(mNextPageButton);
+    layout->addLayout(navLayout);
+    layout->addSpacing(8);
+    layout->addWidget(new QLabel(tr("Audience screen (optional)")));
+    layout->addWidget(mAudienceScreenSelector);
+    layout->addWidget(mAudiencePreviewButton);
     layout->addWidget(mResetFocusButton);
     layout->addStretch();
 
@@ -191,7 +212,114 @@ void UBPresentationManager::connectPresenterControls()
         mAudienceToolState->setZoomEnabled(checked);
         applyAudienceToolState();
     });
+    connect(mFreezeAudienceToggle, &QCheckBox::toggled, this, [this](bool checked) {
+        mAudienceFrozen = checked;
+        applyAudienceToolState();
+    });
+    connect(mPreviousPageButton, &QPushButton::clicked, this, [this]() {
+        if (mBoardController)
+        {
+            mBoardController->previousScene();
+        }
+    });
+    connect(mNextPageButton, &QPushButton::clicked, this, [this]() {
+        if (mBoardController)
+        {
+            mBoardController->nextScene();
+        }
+    });
+    connect(mAudienceScreenSelector,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            [this](int) { applyAudienceScreenSelection(); });
+    connect(mAudiencePreviewButton, &QPushButton::clicked, this, [this]() {
+        if (!mAudienceWindow || !mRunning)
+        {
+            return;
+        }
+
+        mAudienceWindow->showNormal();
+        mAudienceWindow->raise();
+        mAudienceWindow->activateWindow();
+        applyAudienceScreenSelection();
+    });
     connect(mResetFocusButton, &QPushButton::clicked, this, &UBPresentationManager::resetAudienceFocus);
+
+    if (mDisplayManager)
+    {
+        connect(mDisplayManager,
+                &UBDisplayManager::availableScreenCountChanged,
+                this,
+                [this](int) { refreshAudienceScreenSelector(); });
+    }
+}
+
+void UBPresentationManager::refreshAudienceScreenSelector()
+{
+    if (!mAudienceScreenSelector || !mDisplayManager)
+    {
+        return;
+    }
+
+    const QList<QScreen*> screens = mDisplayManager->availableScreens();
+
+    QSignalBlocker blocker(mAudienceScreenSelector);
+    mAudienceScreenSelector->clear();
+
+    for (int i = 0; i < screens.size(); ++i)
+    {
+        const QScreen* screen = screens.at(i);
+        mAudienceScreenSelector->addItem(tr("Screen %1 (%2x%3)")
+                                             .arg(i + 1)
+                                             .arg(screen ? screen->geometry().width() : 0)
+                                             .arg(screen ? screen->geometry().height() : 0),
+                                         i);
+    }
+
+    if (screens.size() > 1)
+    {
+        mAudienceScreenSelector->setCurrentIndex(1);
+    }
+    else
+    {
+        mAudienceScreenSelector->setCurrentIndex(0);
+    }
+
+    mAudienceScreenSelector->setEnabled(screens.size() > 0);
+}
+
+void UBPresentationManager::applyAudienceScreenSelection()
+{
+    if (!mAudienceWindow || !mDisplayManager || !mRunning)
+    {
+        return;
+    }
+
+    const QList<QScreen*> screens = mDisplayManager->availableScreens();
+    if (screens.isEmpty())
+    {
+        return;
+    }
+
+    int index = 0;
+    if (mAudienceScreenSelector)
+    {
+        index = qBound(0, mAudienceScreenSelector->currentIndex(), screens.size() - 1);
+    }
+
+    QScreen* targetScreen = screens.at(index);
+    if (!targetScreen)
+    {
+        return;
+    }
+
+    if (QWindow* handle = mAudienceWindow->windowHandle())
+    {
+        handle->setScreen(targetScreen);
+    }
+
+    mAudienceWindow->setGeometry(targetScreen->geometry());
+    mAudienceWindow->showFullScreen();
 }
 
 void UBPresentationManager::applyRunningState()
@@ -213,6 +341,11 @@ void UBPresentationManager::applyRunningState()
         mAudienceView->setInteractive(mAudienceToolState->anyInteractiveToolEnabled());
         mAudienceWindow->show();
         mDisplayManager->positionScreens();
+        if (mAudiencePreviewButton)
+        {
+            mAudiencePreviewButton->setEnabled(true);
+        }
+        applyAudienceScreenSelection();
         updateAudienceViewFrame();
     }
     else
@@ -220,6 +353,10 @@ void UBPresentationManager::applyRunningState()
         mAudienceView->setAudienceMode(false);
         mAudienceView->setInteractive(false);
         mAudienceWindow->hide();
+        if (mAudiencePreviewButton)
+        {
+            mAudiencePreviewButton->setEnabled(false);
+        }
     }
 }
 
@@ -231,7 +368,10 @@ void UBPresentationManager::applyAudienceToolState()
     }
 
     mAudienceWindow->syncFromToolState();
-    mAudienceView->setInteractive(mRunning && mAudienceToolState->anyInteractiveToolEnabled());
+    const bool canInteract = mRunning && !mAudienceFrozen && mAudienceToolState->anyInteractiveToolEnabled();
+    mAudienceView->setInteractive(canInteract);
+    mAudienceView->setEnabled(!mAudienceFrozen);
+    mAudienceWindow->setUpdatesEnabled(!mAudienceFrozen);
 }
 
 void UBPresentationManager::updateAudienceViewFrame()
