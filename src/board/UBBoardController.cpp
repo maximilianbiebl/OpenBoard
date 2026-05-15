@@ -228,7 +228,7 @@ void UBBoardController::setupViews()
     // TODO UB 4.x Optimization do we have to create the display view even if their is
     // only 1 screen
     //
-    mDisplayView = new UBBoardView(this, UBItemLayerType::FixedBackground, UBItemLayerType::Tool, 0);
+    mDisplayView = new UBBoardView(this, UBItemLayerType::FixedBackground, UBItemLayerType::Tool, 0, true, false);
     mDisplayView->setInteractive(false);
     mDisplayView->setTransformationAnchor(QGraphicsView::NoAnchor);
 

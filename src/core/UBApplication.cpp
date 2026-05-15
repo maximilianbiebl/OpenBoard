@@ -391,6 +391,7 @@ int UBApplication::exec(const QString& pFileToImport)
     bool bUseMultiScreen = UBSettings::settings()->appUseMultiscreen->get().toBool();
     mainWindow->actionMultiScreen->setChecked(bUseMultiScreen);
     connect(mainWindow->actionMultiScreen, SIGNAL(triggered(bool)), applicationController, SLOT(useMultiScreen(bool)));
+    connect(mainWindow->actionStartPresentation, SIGNAL(triggered(bool)), applicationController, SLOT(setPresentationEnabled(bool)));
     connect(mainWindow->actionWidePageSize, SIGNAL(triggered(bool)), boardController, SLOT(setWidePageSize(bool)));
     connect(mainWindow->actionRegularPageSize, SIGNAL(triggered(bool)), boardController, SLOT(setRegularPageSize(bool)));
 
@@ -591,6 +592,7 @@ void UBApplication::decorateActionMenu(QAction* action)
             menu->addSeparator();
             menu->addAction(mainWindow->actionPreferences);
             menu->addAction(mainWindow->actionMultiScreen);
+            menu->addAction(mainWindow->actionStartPresentation);
             if (!UBSettings::settings()->appHideCheckForSoftwareUpdate->get().toBool())
                 menu->addAction(mainWindow->actionCheckUpdate);
             menu->addSeparator();

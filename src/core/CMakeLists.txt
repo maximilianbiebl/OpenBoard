@@ -5,6 +5,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     UBApplication.h
     UBApplicationController.cpp
     UBApplicationController.h
+    UBAudienceToolState.cpp
+    UBAudienceToolState.h
     UBDisplayManager.cpp
     UBDisplayManager.h
     UBDocumentManager.cpp
@@ -25,6 +27,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     UBPersistenceWorker.h
     UBPreferencesController.cpp
     UBPreferencesController.h
+    UBPresentationManager.cpp
+    UBPresentationManager.h
     UBSceneCache.cpp
     UBSceneCache.h
     UBSetting.cpp

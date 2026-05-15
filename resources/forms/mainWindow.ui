@@ -1030,6 +1030,18 @@
     <string>Multi Screen</string>
    </property>
   </action>
+  <action name="actionStartPresentation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/toolbar/display.png</normaloff>:/images/toolbar/display.png</iconset>
+   </property>
+   <property name="text">
+    <string>Start Presentation</string>
+   </property>
+  </action>
   <action name="actionWidePageSize">
    <property name="checkable">
     <bool>true</bool>

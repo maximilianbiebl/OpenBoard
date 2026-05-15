@@ -1,4 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
+    UBAudienceWindow.cpp
+    UBAudienceWindow.h
     UBActionPalette.cpp
     UBActionPalette.h
     UBBackgroundPalette.cpp

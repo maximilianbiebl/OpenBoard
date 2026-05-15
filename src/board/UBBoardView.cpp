@@ -45,6 +45,7 @@
 #include "core/UBSetting.h"
 #include "core/UBPersistenceManager.h"
 #include "core/UB.h"
+#include "core/UBAudienceToolState.h"
 
 #include "network/UBHttpGet.h"
 
@@ -102,6 +103,7 @@ UBBoardView::UBBoardView (UBBoardController* pController, QWidget* pParent, bool
     , mMultipleSelectionIsEnabled(false)
     , bIsControl(isControl)
     , bIsDesktop(isDesktop)
+    , mAudienceMode(false)
 {
     init ();
 
@@ -127,6 +129,7 @@ UBBoardView::UBBoardView (UBBoardController* pController, int pStartLayer, int p
     , mMultipleSelectionIsEnabled(false)
     , bIsControl(isControl)
     , bIsDesktop(isDesktop)
+    , mAudienceMode(false)
 {
     init ();
 
@@ -204,6 +207,12 @@ std::shared_ptr<UBGraphicsScene> UBBoardView::scene ()
 
 void UBBoardView::keyPressEvent (QKeyEvent *event)
 {
+    if (mAudienceMode)
+    {
+        event->ignore();
+        return;
+    }
+
     // send to the scene anyway
     QApplication::sendEvent (scene().get(), event);
 
@@ -1103,6 +1112,23 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
         return;
     }
 
+    if (mAudienceMode)
+    {
+        if (!audiencePointInPage(mapToScene(event->pos())))
+        {
+            event->ignore();
+            return;
+        }
+
+        int tool = UBDrawingController::drawingController()->stylusTool();
+
+        if (!audienceAllowsStylusTool(tool))
+        {
+            event->ignore();
+            return;
+        }
+    }
+
     mIsDragInProgress = false;
 
     if (isAbsurdPoint (event->pos ())) {
@@ -1129,12 +1155,36 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
 
         switch (currentTool) {
         case UBStylusTool::ZoomIn :
-            mController->zoomIn (mapToScene (event->pos ()));
+            if (mAudienceMode)
+            {
+                qreal zoomFactor = UBSettings::settings()->boardZoomFactor->get().toDouble();
+                qreal current = transform().m11();
+                if (current < UB_MAX_ZOOM)
+                {
+                    scale(zoomFactor, zoomFactor);
+                }
+            }
+            else
+            {
+                mController->zoomIn (mapToScene (event->pos ()));
+            }
             event->accept();
             break;
 
         case UBStylusTool::ZoomOut :
-            mController->zoomOut (mapToScene (event->pos ()));
+            if (mAudienceMode)
+            {
+                qreal zoomFactor = UBSettings::settings()->boardZoomFactor->get().toDouble();
+                qreal current = transform().m11();
+                if (current > 0.2)
+                {
+                    scale(1 / zoomFactor, 1 / zoomFactor);
+                }
+            }
+            else
+            {
+                mController->zoomOut (mapToScene (event->pos ()));
+            }
             event->accept();
             break;
 
@@ -1280,7 +1330,15 @@ void UBBoardView::mouseMoveEvent (QMouseEvent *event)
 #endif
         qreal dx = eventPosition.x () - mPreviousPoint.x ();
         qreal dy = eventPosition.y () - mPreviousPoint.y ();
-        mController->handScroll (dx, dy);
+        if (mAudienceMode)
+        {
+            qreal antiScaleRatio = 1 / transform().m11();
+            translate(dx * antiScaleRatio, dy * antiScaleRatio);
+        }
+        else
+        {
+            mController->handScroll (dx, dy);
+        }
         mPreviousPoint = eventPosition;
         event->accept ();
     } break;
@@ -1695,14 +1753,29 @@ void UBBoardView::wheelEvent (QWheelEvent *wheelEvent)
     // Zoom in/out when Ctrl is pressed
     if (wheelEvent->modifiers() == Qt::ControlModifier && wheelEvent->angleDelta().x() == 0)
     {
+        if (mAudienceMode && !audienceAllowsStylusTool(UBStylusTool::ZoomIn))
+        {
+            wheelEvent->accept();
+            return;
+        }
+
         qreal angle = wheelEvent->angleDelta().y();
         qreal zoomBase = UBSettings::settings()->boardZoomBase->get().toDouble();
         qreal zoomFactor = qPow(zoomBase, angle);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-        mController->zoom(zoomFactor, mapToScene(wheelEvent->position().toPoint()));
+        QPointF scenePoint = mapToScene(wheelEvent->position().toPoint());
 #else
-        mController->zoom(zoomFactor, mapToScene(wheelEvent->pos()));
+        QPointF scenePoint = mapToScene(wheelEvent->pos());
 #endif
+        if (mAudienceMode)
+        {
+            scale(zoomFactor, zoomFactor);
+            centerOn(scenePoint);
+        }
+        else
+        {
+            mController->zoom(zoomFactor, scenePoint);
+        }
         wheelEvent->accept();
         return;
     }
@@ -1747,7 +1820,10 @@ void UBBoardView::wheelEvent (QWheelEvent *wheelEvent)
     setForegroundBrush(foregroundBrush());
 #endif
 
-    UBApplication::applicationController->adjustDisplayView();
+    if (!mAudienceMode)
+    {
+        UBApplication::applicationController->adjustDisplayView();
+    }
 }
 
 void UBBoardView::leaveEvent (QEvent * event)
@@ -1762,6 +1838,12 @@ void UBBoardView::leaveEvent (QEvent * event)
 
 void UBBoardView::drawItems (QPainter *painter, int numItems, QGraphicsItem* items[], const QStyleOptionGraphicsItem options[])
 {
+    if (mAudienceMode)
+    {
+        painter->save();
+        painter->setClipRect(audiencePageRect());
+    }
+
     if (!mFilterZIndex)
         QGraphicsView::drawItems (painter, numItems, items, options);
     else
@@ -1785,6 +1867,11 @@ void UBBoardView::drawItems (QPainter *painter, int numItems, QGraphicsItem* ite
 
         delete[] optionsFiltered;
         delete[] itemsFiltered;
+    }
+
+    if (mAudienceMode)
+    {
+        painter->restore();
     }
 }
 
@@ -1873,8 +1960,19 @@ void UBBoardView::paintEvent(QPaintEvent *event)
 
 void UBBoardView::drawBackground (QPainter *painter, const QRectF &rect)
 {
+    if (mAudienceMode)
+    {
+        painter->save();
+        painter->setClipRect(audiencePageRect());
+    }
+
     // draw the background of the QGraphicsScene
     QGraphicsView::drawBackground(painter, rect);
+
+    if (mAudienceMode)
+    {
+        painter->restore();
+    }
 
     if (testAttribute (Qt::WA_TranslucentBackground))
     {
@@ -1911,6 +2009,35 @@ void UBBoardView::drawBackground (QPainter *painter, const QRectF &rect)
 
 void UBBoardView::drawForeground(QPainter* painter, const QRectF& rect)
 {
+    if (mAudienceMode)
+    {
+        QRectF visible = mapToScene(QRect(0, 0, viewport()->width(), viewport()->height())).boundingRect();
+        QRectF pageRect = audiencePageRect();
+
+        painter->save();
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(QColor(Qt::black));
+
+        if (visible.left() < pageRect.left())
+        {
+            painter->drawRect(QRectF(visible.left(), visible.top(), pageRect.left() - visible.left(), visible.height()));
+        }
+        if (visible.right() > pageRect.right())
+        {
+            painter->drawRect(QRectF(pageRect.right(), visible.top(), visible.right() - pageRect.right(), visible.height()));
+        }
+        if (visible.top() < pageRect.top())
+        {
+            painter->drawRect(QRectF(pageRect.left(), visible.top(), pageRect.width(), pageRect.top() - visible.top()));
+        }
+        if (visible.bottom() > pageRect.bottom())
+        {
+            painter->drawRect(QRectF(pageRect.left(), pageRect.bottom(), pageRect.width(), visible.bottom() - pageRect.bottom()));
+        }
+
+        painter->restore();
+    }
+
     QTransform transform{viewportTransform()};
     QRect viewportRect(0, 0, viewport()->width(), viewport()->height());
     QRectF visible{mapToScene(viewportRect).boundingRect()};
@@ -1971,6 +2098,50 @@ void UBBoardView::settingChanged (QVariant newValue)
     mPenPressureSensitive = UBSettings::settings ()->boardPenPressureSensitive->get ().toBool ();
     mMarkerPressureSensitive = UBSettings::settings ()->boardMarkerPressureSensitive->get ().toBool ();
     mUseHighResTabletEvent = UBSettings::settings ()->boardUseHighResTabletEvent->get ().toBool ();
+}
+
+void UBBoardView::setAudienceMode(bool enabled)
+{
+    mAudienceMode = enabled;
+    viewport()->update();
+}
+
+void UBBoardView::setAudienceToolState(UBAudienceToolState* toolState)
+{
+    mAudienceToolState = toolState;
+}
+
+QRectF UBBoardView::audiencePageRect() const
+{
+    auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+
+    if (!currentScene)
+    {
+        return QRectF{};
+    }
+
+    const QSize size = currentScene->nominalSize();
+    return QRectF(size.width() / -2.0, size.height() / -2.0, size.width(), size.height());
+}
+
+bool UBBoardView::audienceAllowsStylusTool(int tool) const
+{
+    if (!mAudienceMode || !mAudienceToolState)
+    {
+        return true;
+    }
+
+    return mAudienceToolState->isStylusToolEnabled(tool);
+}
+
+bool UBBoardView::audiencePointInPage(const QPointF& point) const
+{
+    if (!mAudienceMode)
+    {
+        return true;
+    }
+
+    return audiencePageRect().contains(point);
 }
 
 void UBBoardView::virtualKeyboardActivated(bool b)

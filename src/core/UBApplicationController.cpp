@@ -37,6 +37,7 @@
 #include "core/UBSetting.h"
 #include "core/UBDocumentManager.h"
 #include "core/UBDisplayManager.h"
+#include "core/UBPresentationManager.h"
 
 
 #include "board/UBBoardView.h"
@@ -85,6 +86,7 @@ UBApplicationController::UBApplicationController(UBBoardView *pControlView,
     , mControlView(pControlView)
     , mDisplayView(pDisplayView)
     , mMirror(0)
+    , mPresentationManager(nullptr)
     , mMainMode(Board)
     , mAutomaticCheckForUpdates(false)
     , mCheckingForUpdates(false)
@@ -114,6 +116,13 @@ UBApplicationController::UBApplicationController(UBBoardView *pControlView,
 
     connect(UBApplication::webController, SIGNAL(imageCaptured(const QPixmap &, bool, const QUrl&))
             , this, SLOT(addCapturedPixmap(const QPixmap &, bool, const QUrl&)));
+
+    mPresentationManager = new UBPresentationManager(this,
+                                                     UBApplication::boardController,
+                                                     displayManager,
+                                                     pMainWindow,
+                                                     mDisplayView,
+                                                     this);
 
     mNetworkAccessManager = new QNetworkAccessManager (this);
     QTimer::singleShot (1000, this, SLOT (checkAtLaunch()));
@@ -226,6 +235,11 @@ void UBApplicationController::adaptToolBar()
 
 void UBApplicationController::adjustDisplayView()
 {
+    if (mPresentationManager && mPresentationManager->isRunning() && !mPresentationManager->followMode())
+    {
+        return;
+    }
+
     if (mDisplayView)
     {
         qreal systemDisplayViewScaleFactor = 1.0;
@@ -750,6 +764,16 @@ void UBApplicationController::useMultiScreen(bool use)
     UBApplication::displayManager->adjustScreens();
     UBSettings::settings()->appUseMultiscreen->set(use);
 
+}
+
+void UBApplicationController::setPresentationEnabled(bool enabled)
+{
+    if (!mPresentationManager)
+    {
+        return;
+    }
+
+    mPresentationManager->setRunning(enabled);
 }
 
 
