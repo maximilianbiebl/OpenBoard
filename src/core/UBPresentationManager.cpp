@@ -217,7 +217,6 @@ void UBPresentationManager::applyRunningState()
     }
     else
     {
-        mDisplayManager->setDisplayWidget(mAudienceWindow);
         mAudienceView->setAudienceMode(false);
         mAudienceView->setInteractive(false);
         mAudienceWindow->hide();
