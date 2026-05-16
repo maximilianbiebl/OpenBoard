@@ -1,23 +1,24 @@
-<pr_title>
-Document Windows build failure root cause (MSVC D9025 noise vs QuaZip link error)
-</pr_title>
-<pr_description>
-The Windows build log mixed a high-volume MSVC optimization warning with the actual linker failure. This update captures the actionable root cause and required checks so the build failure can be triaged quickly.
+Persistente Ausgabe (Grund für QuaZip-Problem)
 
-- **Root-cause clarification**
-  - Distinguishes non-blocking `D9025` (`/O2` overridden by `/Od`) from the blocking error `LNK1181` on `quazip.lib`.
-  - Points to the specific release flag source in `OpenBoard.pro` causing warning noise:
-    ```pro
-    QMAKE_CXXFLAGS_RELEASE += /Od /Zi
-    ```
+Du hattest recht: meine Antwort muss als TXT im Repo stehen.
+Diese Datei ist die persistente Ausgabe.
 
-- **QuaZip resolution guidance**
-  - Documents the expected Windows library location: `..\\OpenBoard-ThirdParty\\quazip\\lib\\win32`.
-  - Lists accepted QuaZip library filenames (`quazip.lib`, `quazip1-qt6.lib`, `quazip-qt6.lib`, `quazip1-qt5.lib`, `quazip-qt5.lib`, `quazip1.lib`) to align with current fallback expectations.
+Warum deine QuaZip-Installation aktuell nicht funktioniert:
+1) In deiner QuaZip-Quelle fehlt offenbar eine CMakeLists.txt.
+   -> Dann schlagen "cmake .." und danach "nmake" erwartbar fehl.
+2) OpenBoard erwartet für Windows eine fertige QuaZip-Library im ThirdParty-Pfad:
+   ..\\OpenBoard-ThirdParty\\quazip\\lib\\win32\\
+3) Akzeptierte Lib-Namen laut OpenBoard.pro sind:
+   - quazip.lib
+   - quazip1-qt6.lib
+   - quazip-qt6.lib
+   - quazip1-qt5.lib
+   - quazip-qt5.lib
+   - quazip1.lib
+4) Wenn diese Dateien nicht im obigen Ordner liegen (oder THIRD_PARTY_PATH falsch zeigt),
+   bekommst du Linker-Fehler wie LNK1181 (quazip.lib nicht gefunden).
 
-- **Path mismatch diagnosis**
-  - Notes that if fallback libs exist but `quazip.lib` is still linked, `THIRD_PARTY_PATH` in `OpenBoard.pro` is likely pointing to the wrong ThirdParty location.
-
-- **Change scope**
-  - Adds a diagnostic note in `agent_output.txt` to preserve build-failure analysis and remediation targets.
-</pr_description>
+Kurzfazit:
+Dein Hauptproblem ist nicht "nur" der Compiler-Output,
+sondern dass die erwartete QuaZip-Library im erwarteten ThirdParty-Pfad fehlt
+bzw. aus dem falschen QuaZip-Quellpaket gebaut wurde.
