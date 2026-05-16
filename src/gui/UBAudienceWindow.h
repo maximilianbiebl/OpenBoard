@@ -14,9 +14,9 @@
 #include <QMainWindow>
 #include <QPointer>
 
-#include "board/UBBoardView.h"
-#include "core/UBAudienceToolState.h"
-
+class UBBoardController;
+class UBBoardView;
+class UBAudienceToolState;
 class QToolBar;
 class QAction;
 
@@ -25,23 +25,35 @@ class UBAudienceWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    UBAudienceWindow(UBBoardView* audienceView, UBAudienceToolState* toolState, QWidget* parent = nullptr);
+    UBAudienceWindow(UBBoardController* boardController,
+                     UBAudienceToolState* toolState,
+                     QWidget* parent = nullptr);
     ~UBAudienceWindow() override;
 
-    UBBoardView* audienceView() const { return mAudienceView; }
+    UBBoardView* boardView() const { return mOwnView; }
+
+    // Sync viewport to match the presenter's control view (follow mode).
+    void syncViewport(UBBoardView* controlView);
+
+public slots:
     void syncFromToolState();
+
+private slots:
+    void onActiveSceneChanged();
 
 private:
     void buildToolbar();
     void connectSignals();
 
-    QPointer<UBBoardView> mAudienceView;
+    UBBoardView*               mOwnView{nullptr};
+    QPointer<UBBoardController> mBoardController;
     QPointer<UBAudienceToolState> mToolState;
+
     QToolBar* mToolbar{nullptr};
-    QAction* mPenAction{nullptr};
-    QAction* mMoveAction{nullptr};
-    QAction* mShapeAction{nullptr};
-    QAction* mZoomAction{nullptr};
+    QAction*  mPenAction{nullptr};
+    QAction*  mMoveAction{nullptr};
+    QAction*  mShapeAction{nullptr};
+    QAction*  mZoomAction{nullptr};
 };
 
 #endif

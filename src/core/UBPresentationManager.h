@@ -35,7 +35,7 @@ public:
                           UBBoardController* boardController,
                           UBDisplayManager* displayManager,
                           UBMainWindow* presenterWindow,
-                          UBBoardView* audienceView,
+                          UBBoardView* displayView,
                           QObject* parent = nullptr);
     ~UBPresentationManager() override;
 
@@ -65,7 +65,7 @@ private:
     QPointer<UBBoardController> mBoardController;
     QPointer<UBDisplayManager> mDisplayManager;
     QPointer<UBMainWindow> mPresenterWindow;
-    QPointer<UBBoardView> mAudienceView;
+    QPointer<UBBoardView> mDisplayView;
 
     UBAudienceToolState* mAudienceToolState{nullptr};
     UBAudienceWindow* mAudienceWindow{nullptr};
