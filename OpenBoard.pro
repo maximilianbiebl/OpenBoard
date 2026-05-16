@@ -151,7 +151,10 @@ win32 {
    }
    QUAZIP_LIB_DIR = $$THIRD_PARTY_PATH/quazip/lib/win32
    exists($$QUAZIP_LIB_DIR) {
-      !exists($$QUAZIP_LIB_DIR/quazip.lib) {
+      LIBS += -L$$QUAZIP_LIB_DIR
+      exists($$QUAZIP_LIB_DIR/quazip.lib) {
+         LIBS += -lquazip
+      } else {
          QUAZIP_FALLBACK_LIB =
          exists($$QUAZIP_LIB_DIR/quazip1-qt6.lib):QUAZIP_FALLBACK_LIB = quazip1-qt6
          else: exists($$QUAZIP_LIB_DIR/quazip-qt6.lib):QUAZIP_FALLBACK_LIB = quazip-qt6
@@ -160,7 +163,7 @@ win32 {
          else: exists($$QUAZIP_LIB_DIR/quazip1.lib):QUAZIP_FALLBACK_LIB = quazip1
          !isEmpty(QUAZIP_FALLBACK_LIB) {
             LIBS -= -lquazip
-            LIBS += -L$$QUAZIP_LIB_DIR -l$$QUAZIP_FALLBACK_LIB
+            LIBS += -l$$QUAZIP_FALLBACK_LIB
          }
       }
    }
