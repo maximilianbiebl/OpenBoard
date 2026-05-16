@@ -63,14 +63,14 @@ XPDFRenderer::XPDFRenderer(const QString &filename, bool importingFile)
 #endif
         globalParams->setupBaseFonts(QFile::encodeName(UBPlatformUtils::applicationResourcesDirectory() + "/" + "fonts").data());
     }
-#if POPPLER_VERSION_MAJOR > 25 || (POPPLER_VERSION_MAJOR == 25 && POPPLER_VERSION_MINOR >= 12)
+#if !defined(OPENBOARD_POPPLER_OLD_API) && (POPPLER_VERSION_MAJOR > 25 || (POPPLER_VERSION_MAJOR == 25 && POPPLER_VERSION_MINOR >= 12))
     const QByteArray filenameBytes = filename.toLocal8Bit();
     const std::string_view filenameView(filenameBytes.constData(), static_cast<size_t>(filenameBytes.size()));
     mDocument = new PDFDoc(std::make_unique<GooString>(filenameView));
-#elif POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 3)
+#elif !defined(OPENBOARD_POPPLER_OLD_API) && (POPPLER_VERSION_MAJOR > 22 || (POPPLER_VERSION_MAJOR == 22 && POPPLER_VERSION_MINOR >= 3))
     mDocument = new PDFDoc(std::make_unique<GooString>(filename.toLocal8Bit()));
 #else
-    mDocument = new PDFDoc(new GooString(filename.toLocal8Bit()), 0, 0, 0); // the filename GString is deleted on PDFDoc desctruction
+    mDocument = new PDFDoc(new GooString(filename.toLocal8Bit().constData()), nullptr, nullptr, nullptr);
 #endif
 
     if (isValid())
@@ -239,7 +239,7 @@ QImage* XPDFRenderer::createPDFImageUncached(int pageNumber, qreal xscale, qreal
         if(mSplashUncached)
             delete mSplashUncached;
 
-#if POPPLER_VERSION_MAJOR > 26 || (POPPLER_VERSION_MAJOR == 26 && POPPLER_VERSION_MINOR >= 2)
+#if !defined(OPENBOARD_POPPLER_OLD_API) && (POPPLER_VERSION_MAJOR > 26 || (POPPLER_VERSION_MAJOR == 26 && POPPLER_VERSION_MINOR >= 2))
         mSplashUncached = new SplashOutputDev(splashModeRGB8, 1, constants::paperColor);
 #else
         mSplashUncached = new SplashOutputDev(splashModeRGB8, 1, false, constants::paperColor);

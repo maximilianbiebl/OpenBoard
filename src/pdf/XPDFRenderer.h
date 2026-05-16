@@ -106,7 +106,7 @@ class XPDFRenderer : public PDFRenderer
                     cachedImage = QImage();
                     delete splash;
                 }
-#if POPPLER_VERSION_MAJOR > 26 || (POPPLER_VERSION_MAJOR == 26 && POPPLER_VERSION_MINOR >= 2)
+#if !defined(OPENBOARD_POPPLER_OLD_API) && (POPPLER_VERSION_MAJOR > 26 || (POPPLER_VERSION_MAJOR == 26 && POPPLER_VERSION_MINOR >= 2))
                 splash = new SplashOutputDev(splashModeRGB8, 1, paperColor);
 #else
                 splash = new SplashOutputDev(splashModeRGB8, 1, false, paperColor);

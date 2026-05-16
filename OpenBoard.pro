@@ -186,6 +186,10 @@ win32 {
    system(echo "$$SVN_VERSION" > $$BUILD_DIR/svnversion)
 
    DEFINES += NOMINMAX # avoids compilation error in qdatetime.h
+   # The oschwartz10612 pre-built Poppler for Windows reports a high version number
+   # in poppler-version.h but ships pre-22.03 style API headers (raw GooString*,
+   # SplashOutputDev with reverseVideo param). Force the compatible code paths.
+   DEFINES += OPENBOARD_POPPLER_OLD_API
 
 
    # Windows doesn't support file versions with more than 4 fields, so
