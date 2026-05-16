@@ -35,12 +35,16 @@ public:
 
     UBBoardView* boardView() const { return mOwnView; }
 
-    // Show full page fitted to the window (no black bars, no backstage).
+    // Show full page fitted to the window (always all content visible).
     void fitPage();
 
     // Follow-mode: show the portion of the page the presenter is viewing.
     // Clamped to page rect — audience never sees backstage.
     void syncViewport(UBBoardView* controlView);
+
+    // Zoom in/out on the audience view (clamped to page).
+    void zoomIn();
+    void zoomOut();
 
 public slots:
     void syncFromToolState();

@@ -10,6 +10,7 @@
 
 #include "UBPresentationManager.h"
 
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDockWidget>
@@ -17,6 +18,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QProcess>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
@@ -137,15 +139,18 @@ void UBPresentationManager::swapPresenterAndAudienceScreens()
 
     // ── Move the presenter (main) window to the old audience screen ──
     QScreen* newPresenterScreen = screens.at(audienceIdx);
-    mPresenterWindow->winId(); // ensure native handle exists (winId() is public, create() is not)
+    mPresenterWindow->winId(); // ensure native handle exists
     if (QWindow* h = mPresenterWindow->windowHandle())
     {
-        if (mPresenterWindow->isFullScreen())
+        if (mPresenterWindow->isFullScreen() || mPresenterWindow->isMaximized())
             mPresenterWindow->showNormal();
+        QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
         h->setScreen(newPresenterScreen);
     }
     mPresenterWindow->setGeometry(newPresenterScreen->availableGeometry());
     mPresenterWindow->showMaximized();
+    mPresenterWindow->activateWindow();
+    mPresenterWindow->raise();
 
     // ── Move the audience selector to the old presenter screen ──────
     if (mAudienceScreenSelector)
@@ -237,15 +242,19 @@ void UBPresentationManager::createPresenterControls()
 
         mSwapScreensButton = new QPushButton(tr("⇄ Swap"));
         mSwapScreensButton->setToolTip(
-            tr("Swap presenter and audience screens:\n"
-               "moves the main window to the audience screen\n"
-               "and the audience window to the presenter screen."));
+            tr("Swap presenter and audience screens"));
+
+        mExtendDisplayButton = new QPushButton(tr("⊞ Extend"));
+        mExtendDisplayButton->setToolTip(
+            tr("Switch OS display mode to Extended (like a second monitor).\n"
+               "Equivalent to Win+P → Extend on Windows."));
 
         mAudiencePreviewButton = new QPushButton(tr("↗ Front"));
         mAudiencePreviewButton->setEnabled(false);
-        mAudiencePreviewButton->setToolTip(tr("Bring audience window to the front on its screen"));
+        mAudiencePreviewButton->setToolTip(tr("Bring audience window to the front"));
 
         btnRow->addWidget(mSwapScreensButton);
+        btnRow->addWidget(mExtendDisplayButton);
         btnRow->addWidget(mAudiencePreviewButton);
         gl->addLayout(btnRow);
 
@@ -265,9 +274,20 @@ void UBPresentationManager::createPresenterControls()
         mFollowModeToggle->setChecked(true);
         gl->addWidget(mFollowModeToggle);
 
-        mResetFocusButton = new QPushButton(tr("↺ Reset Audience Focus"));
+        mResetFocusButton = new QPushButton(tr("↺ Reset to Full Page"));
         mResetFocusButton->setToolTip(tr("Snap the audience view back to the full page"));
         gl->addWidget(mResetFocusButton);
+
+        // Presenter-side zoom controls for the audience screen
+        auto* zoomRow = new QHBoxLayout();
+        zoomRow->setSpacing(4);
+        mZoomOutButton = new QPushButton(tr("−  Zoom Out"));
+        mZoomInButton  = new QPushButton(tr("+  Zoom In"));
+        for (auto* b : {mZoomOutButton, mZoomInButton})
+            b->setMinimumHeight(28);
+        zoomRow->addWidget(mZoomOutButton);
+        zoomRow->addWidget(mZoomInButton);
+        gl->addLayout(zoomRow);
 
         rootLayout->addWidget(g);
     }
@@ -401,7 +421,12 @@ void UBPresentationManager::connectPresenterControls()
         if (mBoardController) mBoardController->previousScene();
     });
     connect(mNextPageButton, &QPushButton::clicked, this, [this] {
-        if (mBoardController) mBoardController->nextScene();
+        if (!mBoardController) return;
+        // If already on the last page, create a new one automatically.
+        if (mBoardController->currentPage() >= mBoardController->selectedDocument()->pageCount())
+            mBoardController->addScene();
+        else
+            mBoardController->nextScene();
     });
 
     connect(mAudienceScreenSelector,
@@ -415,6 +440,26 @@ void UBPresentationManager::connectPresenterControls()
 
     connect(mSwapScreensButton, &QPushButton::clicked,
             this, &UBPresentationManager::swapPresenterAndAudienceScreens);
+
+    connect(mExtendDisplayButton, &QPushButton::clicked, this, [] {
+#if defined(Q_OS_WIN)
+        // DisplaySwitch.exe /extend is the standard Windows way to enable
+        // extended display mode (same as Win+P → Extend).
+        QProcess::startDetached(QStringLiteral("DisplaySwitch.exe"),
+                                {QStringLiteral("/extend")});
+#else
+        // On Linux/macOS the user must configure display mode in system
+        // settings — there is no portable CLI equivalent.
+        Q_UNUSED(0);
+#endif
+    });
+
+    connect(mZoomInButton, &QPushButton::clicked, this, [this] {
+        if (mAudienceWindow && mRunning) mAudienceWindow->zoomIn();
+    });
+    connect(mZoomOutButton, &QPushButton::clicked, this, [this] {
+        if (mAudienceWindow && mRunning) mAudienceWindow->zoomOut();
+    });
 
     connect(mAudiencePreviewButton, &QPushButton::clicked, this, [this] {
         if (!mAudienceWindow || !mRunning)
@@ -495,24 +540,26 @@ void UBPresentationManager::applyAudienceScreenSelection()
     if (!target)
         return;
 
-    // Ensure the native window handle exists (required for QWindow::setScreen).
-    mAudienceWindow->winId();
+    // On Windows, the reliable way to show fullscreen on a specific screen is:
+    // 1. Exit fullscreen so the window becomes moveable.
+    // 2. Force native handle creation.
+    // 3. Set the target screen on the native window.
+    // 4. Move window geometry to the target screen.
+    // 5. Process pending events so the window moves before going fullscreen.
+    // 6. Show fullscreen — Qt will fullscreen on the screen matching the geometry.
+    if (mAudienceWindow->isFullScreen())
+        mAudienceWindow->showNormal();
+
+    mAudienceWindow->winId(); // ensure native handle exists
 
     if (QWindow* handle = mAudienceWindow->windowHandle())
-    {
-        if (handle->screen() != target)
-        {
-            // On Windows, fullscreen state must be cleared before switching screens.
-            if (mAudienceWindow->isFullScreen())
-                mAudienceWindow->showNormal();
+        handle->setScreen(target);
 
-            handle->setScreen(target);
-        }
-    }
-
-    // Place the window on the target screen and go fullscreen.
     mAudienceWindow->setGeometry(target->geometry());
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
     UBPlatformUtils::showFullScreen(mAudienceWindow);
+    mAudienceWindow->raise();
 }
 
 // ---------------------------------------------------------------------------
@@ -551,9 +598,8 @@ void UBPresentationManager::applyRunningState()
     {
         mAudienceWindow->hide();
 
-        // Restore the display manager's normal second-screen view.
-        if (mDisplayView)
-            mDisplayView->show();
+        // Do NOT restore mDisplayView — the second screen stays blank when
+        // the presentation is not running (the audience must not see anything).
 
         if (mAudiencePreviewButton)
             mAudiencePreviewButton->setEnabled(false);

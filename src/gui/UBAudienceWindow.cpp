@@ -106,10 +106,10 @@ void UBAudienceWindow::fitPage()
     if (page.isEmpty() || mOwnView->size().isEmpty())
         return;
 
-    // KeepAspectRatioByExpanding: page fills the entire window, no black
-    // bars.  A tiny sliver may be cropped when the aspect ratios differ, but
-    // the audience never sees a letterbox border.
-    mOwnView->fitInView(page, Qt::KeepAspectRatioByExpanding);
+    // KeepAspectRatio ensures the entire slide is always visible.
+    // Black letterbox bars may appear when aspect ratios differ — that is
+    // correct; the audience must ALWAYS see the full page content.
+    mOwnView->fitInView(page, Qt::KeepAspectRatio);
 }
 
 void UBAudienceWindow::syncViewport(UBBoardView* controlView)
@@ -142,8 +142,43 @@ void UBAudienceWindow::syncViewport(UBBoardView* controlView)
     if (targetRect.isEmpty())
         targetRect = pageRect;
 
-    // Fill the audience window with exactly that page region, edge to edge.
-    mOwnView->fitInView(targetRect, Qt::KeepAspectRatioByExpanding);
+    // Show that page region; KeepAspectRatio keeps full content visible.
+    mOwnView->fitInView(targetRect, Qt::KeepAspectRatio);
+}
+
+void UBAudienceWindow::zoomIn()
+{
+    if (!mOwnView) return;
+    const QRectF page = pageRectInScene();
+    mOwnView->scale(1.25, 1.25);
+    if (!page.isEmpty())
+    {
+        QPointF c = mOwnView->mapToScene(mOwnView->viewport()->rect().center());
+        c.setX(qBound(page.left(), c.x(), page.right()));
+        c.setY(qBound(page.top(),  c.y(), page.bottom()));
+        mOwnView->centerOn(c);
+    }
+}
+
+void UBAudienceWindow::zoomOut()
+{
+    if (!mOwnView) return;
+    const QRectF page = pageRectInScene();
+    mOwnView->scale(0.8, 0.8);
+    if (!page.isEmpty())
+    {
+        // If zoomed out further than fit-to-page, snap back to full page.
+        QRectF visible = mOwnView->mapToScene(mOwnView->viewport()->rect()).boundingRect();
+        if (visible.width() >= page.width() || visible.height() >= page.height())
+        {
+            fitPage();
+            return;
+        }
+        QPointF c = mOwnView->mapToScene(mOwnView->viewport()->rect().center());
+        c.setX(qBound(page.left(), c.x(), page.right()));
+        c.setY(qBound(page.top(),  c.y(), page.bottom()));
+        mOwnView->centerOn(c);
+    }
 }
 
 // ---------------------------------------------------------------------------

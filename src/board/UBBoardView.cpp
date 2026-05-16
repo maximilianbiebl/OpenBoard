@@ -1332,8 +1332,18 @@ void UBBoardView::mouseMoveEvent (QMouseEvent *event)
         qreal dy = eventPosition.y () - mPreviousPoint.y ();
         if (mAudienceMode)
         {
-            qreal antiScaleRatio = 1 / transform().m11();
-            translate(dx * antiScaleRatio, dy * antiScaleRatio);
+            // Pan clamped to page: center must stay within the page so
+            // the audience can never drag the slide completely off-screen.
+            QRectF page = audiencePageRect();
+            if (!page.isEmpty())
+            {
+                qreal antiScaleRatio = 1.0 / transform().m11();
+                QPointF proposed = mapToScene(viewport()->rect().center())
+                                   - QPointF(dx * antiScaleRatio, dy * antiScaleRatio);
+                proposed.setX(qBound(page.left(), proposed.x(), page.right()));
+                proposed.setY(qBound(page.top(),  proposed.y(), page.bottom()));
+                centerOn(proposed);
+            }
         }
         else
         {
@@ -1769,8 +1779,23 @@ void UBBoardView::wheelEvent (QWheelEvent *wheelEvent)
 #endif
         if (mAudienceMode)
         {
+            QRectF page = audiencePageRect();
             scale(zoomFactor, zoomFactor);
-            centerOn(scenePoint);
+
+            // Clamp the zoom pivot to the page and prevent zooming out
+            // so far that backstage area becomes visible.
+            if (!page.isEmpty())
+            {
+                QPointF pivot = scenePoint;
+                pivot.setX(qBound(page.left(), pivot.x(), page.right()));
+                pivot.setY(qBound(page.top(),  pivot.y(), page.bottom()));
+                centerOn(pivot);
+
+                // If the visible area now exceeds the page, fit back to page.
+                QRectF visible = mapToScene(viewport()->rect()).boundingRect();
+                if (visible.width() > page.width() || visible.height() > page.height())
+                    fitInView(page, Qt::KeepAspectRatio);
+            }
         }
         else
         {
