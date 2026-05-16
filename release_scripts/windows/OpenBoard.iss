@@ -61,16 +61,14 @@ Type: files ; Name: "{app}\*.dll"
 #define QtDir GetEnv('QT_DIR')
 
 [Files]
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\microsoft\vcredist_2013.x64.exe"; DestDir:"{tmp}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\microsoft\vcredist_2015_2022.x64.exe"; DestDir:"{tmp}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\microsoft\LAVFilters-0.77.2-Installer.exe"; DestDir:"{tmp}"
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\microsoft\vcredist_2013.x64.exe"; DestDir:"{tmp}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\microsoft\vcredist_2015_2022.x64.exe"; DestDir:"{tmp}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\microsoft\LAVFilters-0.77.2-Installer.exe"; DestDir:"{tmp}"; Flags: skipifsourcedoesntexist
 Source: "{#ProjectRoot}\build\win32\release\product\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-;OpenSSL
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\openssl\openssl-3.0.15-win64\bin\libssl-3-x64.dll"; DestDir:"{app}"; Flags: ignoreversion
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\openssl\openssl-3.0.15-win64\bin\libcrypto-3-x64.dll"; DestDir:"{app}"; Flags: ignoreversion
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\openssl\win32\libeay32.dll"; DestDir:"{app}"; Flags: ignoreversion
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\openssl\win32\ssleay32.dll"; DestDir:"{app}"; Flags: ignoreversion
+;OpenSSL (64-bit)
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\openssl\openssl-3.0.15-win64\bin\libssl-3-x64.dll"; DestDir:"{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\openssl\openssl-3.0.15-win64\bin\libcrypto-3-x64.dll"; DestDir:"{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 ;Qt base dll
 ;Source: "OpenBoard.exe"; DestDir: "{app}"
@@ -111,20 +109,20 @@ Source: "{#QtLibs}\zstd.dll"; DestDir: "{app}"
 
 
 ; Poppler dlls
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\brotlicommon.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\brotlidec.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\bz2.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\freetype.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\jpeg62.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\liblzma.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\libpng16.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\openjp2.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\poppler.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\poppler-cpp.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\tiff.dll"; DestDir: "{app}"
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\zlib1.dll"; DestDir: "{app}"
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\brotlicommon.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\brotlidec.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\bz2.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\freetype.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\jpeg62.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\liblzma.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\libpng16.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\openjp2.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\poppler.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\poppler-cpp.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\tiff.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\poppler\bin\zlib1.dll"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
 
-Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\zlib\1.2.11\bin\zlib.dll"; DestDir:"{app}"; Flags: ignoreversion
+Source: "{#ProjectRoot}\..\OpenBoard-ThirdParty\zlib\1.2.11\bin\zlib.dll"; DestDir:"{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
@@ -194,9 +192,9 @@ Root: HKLM64; Subkey: "SOFTWARE\Wow6432Node\Microsoft\Internet Explorer\Low Righ
 Root: HKLM64; Subkey: "SOFTWARE\Wow6432Node\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppPath"; ValueData: "{app}"; Flags: uninsdeletevalue; Check: isProcessorX64
 
 [Run]
-Filename: "{tmp}\vcredist_2013.x64.exe";WorkingDir:"{tmp}"; Parameters: "/install /quiet /norestart"; StatusMsg: Installing CRT 2013...
-Filename: "{tmp}\vcredist_2015_2022.x64.exe";WorkingDir:"{tmp}"; Parameters: "/install /quiet /norestart"; StatusMsg: Installing CRT 2015-2022 ...
-Filename: "{tmp}\LAVFilters-0.77.2-Installer.exe";WorkingDir:"{tmp}"; Parameters: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"; StatusMsg: Installing LAV Filters ...
+Filename: "{tmp}\vcredist_2013.x64.exe";WorkingDir:"{tmp}"; Parameters: "/install /quiet /norestart"; StatusMsg: Installing CRT 2013...; Check: FileExists(ExpandConstant('{tmp}\vcredist_2013.x64.exe'))
+Filename: "{tmp}\vcredist_2015_2022.x64.exe";WorkingDir:"{tmp}"; Parameters: "/install /quiet /norestart"; StatusMsg: Installing CRT 2015-2022 ...; Check: FileExists(ExpandConstant('{tmp}\vcredist_2015_2022.x64.exe'))
+Filename: "{tmp}\LAVFilters-0.77.2-Installer.exe";WorkingDir:"{tmp}"; Parameters: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"; StatusMsg: Installing LAV Filters ...; Check: FileExists(ExpandConstant('{tmp}\LAVFilters-0.77.2-Installer.exe'))
 Filename: "{app}\OpenBoard.exe"; Description: "{cm:LaunchProgram,OpenBoard}"; Flags: nowait postinstall skipifsilent 
 
 [UninstallDelete]
