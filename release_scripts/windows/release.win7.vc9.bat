@@ -138,9 +138,9 @@ if exist "..\OpenBoard-ThirdParty\poppler\bin" (
     xcopy /Y "..\OpenBoard-ThirdParty\poppler\bin\*.dll" "%PRODUCT_DIR%\" >nul 2>nul
 )
 
-REM QuaZip DLL (may live in bin\ or alongside the .lib)
-for %%D in (..\OpenBoard-ThirdParty\quazip\bin ..\OpenBoard-ThirdParty\quazip\lib\win32) do (
-    if exist "%%D" xcopy /Y "%%D\*.dll" "%PRODUCT_DIR%\" >nul 2>nul
+REM QuaZip DLL (may live in bin\, lib\win32\, or build\quazip\)
+for %%D in (..\OpenBoard-ThirdParty\quazip\bin ..\OpenBoard-ThirdParty\quazip\lib\win32 ..\OpenBoard-ThirdParty\quazip\build\quazip) do (
+    if exist "%%D\quazip1-qt6.dll" xcopy /Y "%%D\quazip1-qt6.dll" "%PRODUCT_DIR%\" >nul 2>nul
 )
 
 echo === Copying customizations ===
