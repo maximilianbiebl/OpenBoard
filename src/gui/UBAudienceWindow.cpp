@@ -58,6 +58,7 @@ void UBAudienceWindow::onActiveSceneChanged()
     if (mBoardController && mBoardController->activeScene() && mOwnView)
     {
         mOwnView->setScene(mBoardController->activeScene().get());
+        fitPage();
     }
 }
 
@@ -66,27 +67,52 @@ void UBAudienceWindow::syncViewport(UBBoardView* controlView)
     if (!mOwnView || !controlView)
         return;
 
-    // Mirror the scene (already set on scene-change, but be safe).
+    // Sync scene if needed.
     if (controlView->scene() && mOwnView->scene() != controlView->scene())
         mOwnView->setScene(controlView->scene().get());
 
-    // Scale so the audience fills the window with the same content as the
-    // control view.
-    const QSize mySize   = mOwnView->size();
-    const QSize ctrlSize = controlView->size();
-    if (mySize.isEmpty() || ctrlSize.isEmpty())
+    if (mOwnView->size().isEmpty())
         return;
 
-    const qreal hFactor = static_cast<qreal>(mySize.height()) / ctrlSize.height();
-    const qreal wFactor = static_cast<qreal>(mySize.width())  / ctrlSize.width();
-    const qreal factor  = qMin(hFactor, wFactor);
+    // Page rect in scene coordinates (centred at origin).
+    const QRectF pageRect = pageRectInScene();
+    if (pageRect.isEmpty())
+        return;
 
-    QTransform tr;
-    tr.scale(factor, factor);
-    mOwnView->setTransform(tr);
+    // What portion of the scene is the presenter currently looking at?
+    const QRectF presenterView =
+        controlView->mapToScene(controlView->viewport()->rect()).boundingRect();
 
-    // Centre on the same scene point the presenter is looking at.
-    mOwnView->centerOn(controlView->mapToScene(controlView->rect().center()));
+    // Clamp that to the page so the audience never sees backstage content.
+    QRectF targetRect = presenterView.intersected(pageRect);
+
+    // If the presenter is entirely outside the page (e.g. editing backstage)
+    // fall back to showing the full page.
+    if (targetRect.isEmpty())
+        targetRect = pageRect;
+
+    // Fill the audience window completely with the target page region.
+    // KeepAspectRatioByExpanding fills edge-to-edge with no black bars,
+    // at the cost of cropping a tiny sliver if the aspect ratios differ.
+    mOwnView->fitInView(targetRect, Qt::KeepAspectRatioByExpanding);
+}
+
+void UBAudienceWindow::fitPage()
+{
+    if (!mOwnView)
+        return;
+    const QRectF pageRect = pageRectInScene();
+    if (!pageRect.isEmpty())
+        mOwnView->fitInView(pageRect, Qt::KeepAspectRatioByExpanding);
+}
+
+QRectF UBAudienceWindow::pageRectInScene() const
+{
+    auto scene = mOwnView ? mOwnView->scene() : nullptr;
+    if (!scene)
+        return {};
+    const QSize sz = scene->nominalSize();
+    return QRectF(sz.width() / -2.0, sz.height() / -2.0, sz.width(), sz.height());
 }
 
 void UBAudienceWindow::buildToolbar()

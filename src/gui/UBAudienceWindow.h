@@ -13,6 +13,7 @@
 
 #include <QMainWindow>
 #include <QPointer>
+#include <QRectF>
 
 class UBBoardController;
 class UBBoardView;
@@ -32,8 +33,11 @@ public:
 
     UBBoardView* boardView() const { return mOwnView; }
 
-    // Sync viewport to match the presenter's control view (follow mode).
+    // Follow-mode: sync audience viewport to presenter's current view, clamped to page.
     void syncViewport(UBBoardView* controlView);
+
+    // Reset: show the full page filling the audience window (no black bars).
+    void fitPage();
 
 public slots:
     void syncFromToolState();
@@ -44,6 +48,7 @@ private slots:
 private:
     void buildToolbar();
     void connectSignals();
+    QRectF pageRectInScene() const;
 
     UBBoardView*               mOwnView{nullptr};
     QPointer<UBBoardController> mBoardController;

@@ -25,6 +25,7 @@
 #include "core/UBApplicationController.h"
 #include "core/UBAudienceToolState.h"
 #include "core/UBDisplayManager.h"
+#include "frameworks/UBPlatformUtils.h"
 #include "gui/UBAudienceWindow.h"
 #include "gui/UBMainWindow.h"
 
@@ -100,11 +101,10 @@ void UBPresentationManager::setFollowMode(bool follow)
 
 void UBPresentationManager::resetAudienceFocus()
 {
-    if (!mRunning || !mBoardController || !mAudienceWindow)
+    if (!mRunning || !mAudienceWindow)
         return;
 
-    if (UBBoardView* controlView = mBoardController->controlView())
-        mAudienceWindow->syncViewport(controlView);
+    mAudienceWindow->fitPage();
 }
 
 void UBPresentationManager::createPresenterControls()
@@ -216,10 +216,9 @@ void UBPresentationManager::connectPresenterControls()
     connect(mAudiencePreviewButton, &QPushButton::clicked, this, [this] {
         if (!mAudienceWindow || !mRunning)
             return;
-        mAudienceWindow->showNormal();
+        applyAudienceScreenSelection();
         mAudienceWindow->raise();
         mAudienceWindow->activateWindow();
-        applyAudienceScreenSelection();
     });
 
     connect(mResetFocusButton, &QPushButton::clicked,
@@ -286,11 +285,18 @@ void UBPresentationManager::applyAudienceScreenSelection()
     if (!target)
         return;
 
+    // On Windows, moving to a different screen requires hiding first,
+    // then reassigning the screen handle, then calling platform showFullScreen.
+    mAudienceWindow->hide();
+
+    // Force native window handle creation so setScreen works.
+    mAudienceWindow->winId();
+
     if (QWindow* handle = mAudienceWindow->windowHandle())
         handle->setScreen(target);
 
     mAudienceWindow->setGeometry(target->geometry());
-    mAudienceWindow->showFullScreen();
+    UBPlatformUtils::showFullScreen(mAudienceWindow);
 }
 
 void UBPresentationManager::applyRunningState()
@@ -300,8 +306,6 @@ void UBPresentationManager::applyRunningState()
 
     if (mRunning)
     {
-        mAudienceWindow->show();
-
         // Hide the display manager's view so the audience window is the only
         // thing visible on the second screen.
         if (mDisplayView)
