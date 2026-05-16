@@ -1,7 +1,7 @@
 [Desktop Entry]
 Encoding=UTF-8
-Name=OpenBoard
-Comment=OpenBoard, an interactive white board application
+Name=BoardPresenter
+Comment=BoardPresenter – interactive whiteboard with dual-screen presentation mode
 Exec=openboard %f
 Icon=ch.openboard.OpenBoard
 StartupNotify=true

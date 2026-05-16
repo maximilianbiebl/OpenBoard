@@ -35,7 +35,7 @@ BEGIN
 
             VALUE "CompanyName",      "Open Education Foudation\000"
 
-            VALUE "FileDescription",  "OpenBoard\000"
+            VALUE "FileDescription",  "BoardPresenter\000"
 
             VALUE "FileVersion",      UBVERSION
 
@@ -43,7 +43,7 @@ BEGIN
 
             VALUE "OriginalFilename", "OpenBoard.exe\000"
 
-            VALUE "ProductName",      "OpenBoard\000"
+            VALUE "ProductName",      "BoardPresenter\000"
 
             VALUE "ProductVersion",   UBVERSION
 

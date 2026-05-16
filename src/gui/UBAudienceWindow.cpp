@@ -164,21 +164,26 @@ void UBAudienceWindow::zoomOut()
 {
     if (!mOwnView) return;
     const QRectF page = pageRectInScene();
+    if (page.isEmpty()) return;
+
+    // From the normal (fit-to-page) view the audience may only zoom IN.
+    // If already showing the full page or more, zoom-out does nothing.
+    const QRectF visible = mOwnView->mapToScene(mOwnView->viewport()->rect()).boundingRect();
+    if (visible.width() >= page.width() * 0.99 || visible.height() >= page.height() * 0.99)
+        return;
+
     mOwnView->scale(0.8, 0.8);
-    if (!page.isEmpty())
+
+    const QRectF newVisible = mOwnView->mapToScene(mOwnView->viewport()->rect()).boundingRect();
+    if (newVisible.width() >= page.width() || newVisible.height() >= page.height())
     {
-        // If zoomed out further than fit-to-page, snap back to full page.
-        QRectF visible = mOwnView->mapToScene(mOwnView->viewport()->rect()).boundingRect();
-        if (visible.width() >= page.width() || visible.height() >= page.height())
-        {
-            fitPage();
-            return;
-        }
-        QPointF c = mOwnView->mapToScene(mOwnView->viewport()->rect().center());
-        c.setX(qBound(page.left(), c.x(), page.right()));
-        c.setY(qBound(page.top(),  c.y(), page.bottom()));
-        mOwnView->centerOn(c);
+        fitPage();
+        return;
     }
+    QPointF c = mOwnView->mapToScene(mOwnView->viewport()->rect().center());
+    c.setX(qBound(page.left(), c.x(), page.right()));
+    c.setY(qBound(page.top(),  c.y(), page.bottom()));
+    mOwnView->centerOn(c);
 }
 
 // ---------------------------------------------------------------------------
@@ -237,67 +242,52 @@ void UBAudienceWindow::buildToolbar()
         "QToolButton:pressed{ background: rgba(255,255,255,60); }"
         "QToolButton:disabled{ color: rgba(255,255,255,80); }");
 
-    // Reuse OpenBoard's existing stylus palette icons so the audience toolbar
-    // looks visually consistent with the rest of the application.
-    {
+    // Tool buttons — icons match the presenter's stylus palette for consistency.
+    auto makeToolAction = [this](const QString& off, const QString& on, const QString& label) -> QAction* {
         QIcon icon;
-        icon.addFile(":images/stylusPalette/pen.png",   QSize(), QIcon::Normal, QIcon::Off);
-        icon.addFile(":images/stylusPalette/penOn.png", QSize(), QIcon::Normal, QIcon::On);
-        mPenAction = mToolbar->addAction(icon, tr("Pen"));
-    }
-    {
-        QIcon icon;
-        icon.addFile(":images/stylusPalette/arrow.png",   QSize(), QIcon::Normal, QIcon::Off);
-        icon.addFile(":images/stylusPalette/arrowOn.png", QSize(), QIcon::Normal, QIcon::On);
-        mMoveAction = mToolbar->addAction(icon, tr("Move"));
-    }
-    {
-        QIcon icon;
-        icon.addFile(":images/stylusPalette/line.png",   QSize(), QIcon::Normal, QIcon::Off);
-        icon.addFile(":images/stylusPalette/lineOn.png", QSize(), QIcon::Normal, QIcon::On);
-        mShapeAction = mToolbar->addAction(icon, tr("Shape"));
-    }
-    {
-        QIcon icon;
-        icon.addFile(":images/stylusPalette/hand.png",   QSize(), QIcon::Normal, QIcon::Off);
-        icon.addFile(":images/stylusPalette/handOn.png", QSize(), QIcon::Normal, QIcon::On);
-        mZoomAction = mToolbar->addAction(icon, tr("Zoom/Pan"));
-    }
+        icon.addFile(off, QSize(), QIcon::Normal, QIcon::Off);
+        icon.addFile(on,  QSize(), QIcon::Normal, QIcon::On);
+        return mToolbar->addAction(icon, label);
+    };
 
-    // Checkable + exclusive so only the active tool appears pressed.
+    mPenAction    = makeToolAction(":images/stylusPalette/pen.png",    ":images/stylusPalette/penOn.png",    tr("Pen"));
+    mMarkerAction = makeToolAction(":images/stylusPalette/marker.png", ":images/stylusPalette/markerOn.png", tr("Marker"));
+    mEraserAction = makeToolAction(":images/stylusPalette/eraser.png", ":images/stylusPalette/eraserOn.png", tr("Eraser"));
+    mMoveAction   = makeToolAction(":images/stylusPalette/arrow.png",  ":images/stylusPalette/arrowOn.png",  tr("Select"));
+    mShapeAction  = makeToolAction(":images/stylusPalette/line.png",   ":images/stylusPalette/lineOn.png",   tr("Shape"));
+    mZoomAction   = makeToolAction(":images/stylusPalette/hand.png",   ":images/stylusPalette/handOn.png",   tr("Pan/Zoom"));
+
+    // Checkable + exclusive so exactly one tool appears active.
     auto* toolGroup = new QActionGroup(this);
     toolGroup->setExclusive(true);
-    for (auto* a : {mPenAction, mMoveAction, mShapeAction, mZoomAction})
+    for (auto* a : {mPenAction, mMarkerAction, mEraserAction, mMoveAction, mShapeAction, mZoomAction})
     {
         a->setCheckable(true);
         toolGroup->addAction(a);
     }
-    mPenAction->setChecked(true); // default active tool
+    mPenAction->setChecked(true);
 
-    connect(mPenAction,   &QAction::triggered, this, [] {
-        UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pen);
-    });
-    connect(mMoveAction,  &QAction::triggered, this, [] {
-        UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);
-    });
-    connect(mShapeAction, &QAction::triggered, this, [] {
-        UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Line);
-    });
-    connect(mZoomAction,  &QAction::triggered, this, [] {
-        UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Hand);
-    });
+    connect(mPenAction,    &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pen);      });
+    connect(mMarkerAction, &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Marker);    });
+    connect(mEraserAction, &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Eraser);    });
+    connect(mMoveAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);  });
+    connect(mShapeAction,  &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Line);      });
+    connect(mZoomAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Hand);      });
 
-    // Mirror stylus tool changes that come from anywhere (e.g. hardware stylus) back to the toolbar.
+    // Keep toolbar in sync when the global stylus tool changes (e.g. hardware stylus or presenter).
     connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
             this, [this](int tool) {
-                if (tool == UBStylusTool::Pen || tool == UBStylusTool::Marker)
-                    { QSignalBlocker b(mPenAction);   mPenAction->setChecked(true);   }
-                else if (tool == UBStylusTool::Selector || tool == UBStylusTool::Play)
-                    { QSignalBlocker b(mMoveAction);  mMoveAction->setChecked(true);  }
-                else if (tool == UBStylusTool::Line)
-                    { QSignalBlocker b(mShapeAction); mShapeAction->setChecked(true); }
-                else if (tool == UBStylusTool::Hand || tool == UBStylusTool::ZoomIn || tool == UBStylusTool::ZoomOut)
-                    { QSignalBlocker b(mZoomAction);  mZoomAction->setChecked(true);  }
+                struct { QAction* action; std::initializer_list<int> tools; } map[] = {
+                    { mPenAction,    { UBStylusTool::Pen } },
+                    { mMarkerAction, { UBStylusTool::Marker } },
+                    { mEraserAction, { UBStylusTool::Eraser } },
+                    { mMoveAction,   { UBStylusTool::Selector, UBStylusTool::Play } },
+                    { mShapeAction,  { UBStylusTool::Line } },
+                    { mZoomAction,   { UBStylusTool::Hand, UBStylusTool::ZoomIn, UBStylusTool::ZoomOut } },
+                };
+                for (auto& entry : map)
+                    for (int t : entry.tools)
+                        if (tool == t) { QSignalBlocker b(entry.action); entry.action->setChecked(true); return; }
             });
 
     // Zoom buttons — always available regardless of tool state.
@@ -344,10 +334,12 @@ void UBAudienceWindow::syncFromToolState()
     if (mToolbar)
         mToolbar->setVisible(mToolState->toolbarVisible());
 
-    if (mPenAction)   mPenAction->setEnabled(mToolState->penEnabled());
-    if (mMoveAction)  mMoveAction->setEnabled(mToolState->moveEnabled());
-    if (mShapeAction) mShapeAction->setEnabled(mToolState->shapeEnabled());
-    if (mZoomAction)  mZoomAction->setEnabled(mToolState->zoomEnabled());
+    if (mPenAction)    mPenAction->setEnabled(mToolState->penEnabled());
+    if (mMarkerAction) mMarkerAction->setEnabled(mToolState->penEnabled());
+    if (mEraserAction) mEraserAction->setEnabled(mToolState->penEnabled());
+    if (mMoveAction)   mMoveAction->setEnabled(mToolState->moveEnabled());
+    if (mShapeAction)  mShapeAction->setEnabled(mToolState->shapeEnabled());
+    if (mZoomAction)   mZoomAction->setEnabled(mToolState->zoomEnabled());
 
     if (mOwnView)
         mOwnView->setInteractive(mToolState->anyInteractiveToolEnabled());

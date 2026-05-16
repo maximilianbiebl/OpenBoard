@@ -1107,7 +1107,9 @@ void UBBoardView::longPressEvent()
 
 void UBBoardView::mousePressEvent (QMouseEvent *event)
 {
-    if (!bIsControl && !bIsDesktop) {
+    // Audience mode view is neither control nor desktop, but must still
+    // process events so the audience toolbar tools are functional.
+    if (!bIsControl && !bIsDesktop && !mAudienceMode) {
         event->ignore();
         return;
     }

@@ -11,11 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>OpenBoard</string>
+   <string>BoardPresenter</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../OpenBoard.qrc">
-    <normaloff>:/images/OpenBoard.png</normaloff>:/images/OpenBoard.png</iconset>
+    <normaloff>:/images/boardpresenter.svg</normaloff>:/images/boardpresenter.svg</iconset>
   </property>
   <property name="iconSize">
    <size>

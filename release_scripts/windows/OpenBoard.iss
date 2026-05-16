@@ -10,10 +10,10 @@
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{8CCA6AC7-BBF9-4DD2-8E70-A907E0FCA38F}}
-AppName=OpenBoard
+AppName=BoardPresenter
 AppVersion={#ApplicationVersion}
-AppVerName=OpenBoard {#ApplicationVersion}
-UninstallDisplayName=OpenBoard {#ApplicationVersion}
+AppVerName=BoardPresenter {#ApplicationVersion}
+UninstallDisplayName=BoardPresenter {#ApplicationVersion}
 AppPublisher=Open Education Foundation
 ArchitecturesInstallIn64BitMode=x64
 
@@ -21,8 +21,8 @@ AppPublisherURL=http://www.oe-f.org
 AppSupportURL=http://www.openboard.org
 AppUpdatesURL=http://get.openboard.org
 
-DefaultDirName={pf}\OpenBoard
-DefaultGroupName=OpenBoard
+DefaultDirName={pf}\BoardPresenter
+DefaultGroupName=BoardPresenter
 
 OutputDir={#ProjectRoot}\build\win32\release\installer\
 OutputBaseFilename=OpenBoard

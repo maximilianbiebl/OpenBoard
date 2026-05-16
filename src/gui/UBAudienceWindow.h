@@ -69,6 +69,8 @@ private:
 
     QToolBar* mToolbar{nullptr};
     QAction*  mPenAction{nullptr};
+    QAction*  mEraserAction{nullptr};
+    QAction*  mMarkerAction{nullptr};
     QAction*  mMoveAction{nullptr};
     QAction*  mShapeAction{nullptr};
     QAction*  mZoomAction{nullptr};
