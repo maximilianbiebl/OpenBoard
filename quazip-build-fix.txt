@@ -11,3 +11,9 @@ Lösung:
 Alternative:
 Wenn OpenBoard-ThirdParty an einem anderen Ort liegt, passe in OpenBoard.pro
 den Wert THIRD_PARTY_PATH an, sodass er auf den richtigen Ordner zeigt.
+
+Hinweis zu LNK1181 ("quazip.lib"):
+Der Windows-qmake-Build sucht die QuaZip-Bibliothek unter
+..\OpenBoard-ThirdParty\quazip\lib\win32. Akzeptierte Namen sind u.a.
+quazip.lib, quazip1-qt6.lib, quazip-qt6.lib, quazip1-qt5.lib und
+quazip-qt5.lib. Stelle sicher, dass eine der Dateien vorhanden ist.

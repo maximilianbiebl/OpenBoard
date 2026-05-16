@@ -123,6 +123,21 @@ win32 {
    DEPENDPATH += $$THIRD_PARTY_PATH/quazip/
    INCLUDEPATH += $$THIRD_PARTY_PATH/quazip/
    include($$THIRD_PARTY_PATH/quazip/quazip.pri)
+   QUAZIP_LIB_DIR = $$THIRD_PARTY_PATH/quazip/lib/win32
+   exists($$QUAZIP_LIB_DIR) {
+      !exists($$QUAZIP_LIB_DIR/quazip.lib) {
+         QUAZIP_FALLBACK_LIB =
+         exists($$QUAZIP_LIB_DIR/quazip1-qt6.lib):QUAZIP_FALLBACK_LIB = quazip1-qt6
+         else: exists($$QUAZIP_LIB_DIR/quazip-qt6.lib):QUAZIP_FALLBACK_LIB = quazip-qt6
+         else: exists($$QUAZIP_LIB_DIR/quazip1-qt5.lib):QUAZIP_FALLBACK_LIB = quazip1-qt5
+         else: exists($$QUAZIP_LIB_DIR/quazip-qt5.lib):QUAZIP_FALLBACK_LIB = quazip-qt5
+         else: exists($$QUAZIP_LIB_DIR/quazip1.lib):QUAZIP_FALLBACK_LIB = quazip1
+         !isEmpty(QUAZIP_FALLBACK_LIB) {
+            LIBS -= -lquazip
+            LIBS += -L$$QUAZIP_LIB_DIR -l$$QUAZIP_FALLBACK_LIB
+         }
+      }
+   }
 
    RC_FILE = resources/win/OpenBoard.rc
    CONFIG += axcontainer
@@ -532,4 +547,3 @@ INSTALLS = UB_ETC \
 DISTFILES += \
     resources/images/moveDown.svg \
     resources/images/moveDownDisabled.svg
-
