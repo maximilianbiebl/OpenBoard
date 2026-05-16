@@ -51,6 +51,7 @@ public slots:
     void setRunning(bool enabled);
     void setFollowMode(bool follow);
     void resetAudienceFocus();
+    void swapPresenterAndAudienceScreens();
 
 private:
     void createPresenterControls();
@@ -83,6 +84,7 @@ private:
     QCheckBox*   mZoomToggle{nullptr};
     QCheckBox*   mFreezeAudienceToggle{nullptr};
     QComboBox*   mAudienceScreenSelector{nullptr};
+    QPushButton* mSwapScreensButton{nullptr};
     QPushButton* mPreviousPageButton{nullptr};
     QPushButton* mNextPageButton{nullptr};
     QPushButton* mAudiencePreviewButton{nullptr};

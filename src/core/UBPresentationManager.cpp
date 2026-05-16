@@ -114,6 +114,51 @@ void UBPresentationManager::setFollowMode(bool follow)
         mAudienceWindow->fitPage(); // entering free mode: show full page first
 }
 
+void UBPresentationManager::swapPresenterAndAudienceScreens()
+{
+    if (!mDisplayManager || !mPresenterWindow)
+        return;
+
+    const QList<QScreen*> screens = mDisplayManager->availableScreens();
+    if (screens.size() < 2)
+        return;
+
+    // Current audience screen (from the dropdown).
+    const int audienceIdx = mAudienceScreenSelector
+        ? qBound(0, mAudienceScreenSelector->currentIndex(), screens.size() - 1)
+        : 0;
+
+    // Find which screen the main presenter window is currently on.
+    QScreen* presenterScreen = mPresenterWindow->screen();
+    const int presenterIdx   = screens.indexOf(presenterScreen);
+
+    if (presenterIdx < 0 || presenterIdx == audienceIdx)
+        return; // nothing to swap
+
+    // ── Move the presenter (main) window to the old audience screen ──
+    QScreen* newPresenterScreen = screens.at(audienceIdx);
+    mPresenterWindow->create(); // ensure native handle exists
+    if (QWindow* h = mPresenterWindow->windowHandle())
+    {
+        if (mPresenterWindow->isFullScreen())
+            mPresenterWindow->showNormal();
+        h->setScreen(newPresenterScreen);
+    }
+    mPresenterWindow->setGeometry(newPresenterScreen->availableGeometry());
+    mPresenterWindow->showMaximized();
+
+    // ── Move the audience selector to the old presenter screen ──────
+    if (mAudienceScreenSelector)
+    {
+        QSignalBlocker blocker(mAudienceScreenSelector);
+        mAudienceScreenSelector->setCurrentIndex(presenterIdx);
+    }
+
+    // ── Reposition the audience window if a presentation is running ─
+    if (mRunning)
+        applyAudienceScreenSelection();
+}
+
 void UBPresentationManager::resetAudienceFocus()
 {
     if (!mRunning || !mAudienceWindow)
@@ -188,9 +233,19 @@ void UBPresentationManager::createPresenterControls()
         gl->addWidget(mAudienceScreenSelector);
 
         auto* btnRow = new QHBoxLayout();
-        mAudiencePreviewButton = new QPushButton(tr("↗ Bring to Front"));
+        btnRow->setSpacing(4);
+
+        mSwapScreensButton = new QPushButton(tr("⇄ Swap"));
+        mSwapScreensButton->setToolTip(
+            tr("Swap presenter and audience screens:\n"
+               "moves the main window to the audience screen\n"
+               "and the audience window to the presenter screen."));
+
+        mAudiencePreviewButton = new QPushButton(tr("↗ Front"));
         mAudiencePreviewButton->setEnabled(false);
-        mAudiencePreviewButton->setToolTip(tr("Move audience window to front on the selected screen"));
+        mAudiencePreviewButton->setToolTip(tr("Bring audience window to the front on its screen"));
+
+        btnRow->addWidget(mSwapScreensButton);
         btnRow->addWidget(mAudiencePreviewButton);
         gl->addLayout(btnRow);
 
@@ -358,6 +413,9 @@ void UBPresentationManager::connectPresenterControls()
                     applyAudienceScreenSelection();
             });
 
+    connect(mSwapScreensButton, &QPushButton::clicked,
+            this, &UBPresentationManager::swapPresenterAndAudienceScreens);
+
     connect(mAudiencePreviewButton, &QPushButton::clicked, this, [this] {
         if (!mAudienceWindow || !mRunning)
             return;
@@ -410,6 +468,10 @@ void UBPresentationManager::refreshAudienceScreenSelector()
     // Default: second screen for audience (if available).
     mAudienceScreenSelector->setCurrentIndex(screens.size() > 1 ? 1 : 0);
     mAudienceScreenSelector->setEnabled(!screens.isEmpty());
+
+    const bool multiScreen = screens.size() > 1;
+    if (mSwapScreensButton)
+        mSwapScreensButton->setEnabled(multiScreen);
 }
 
 // ---------------------------------------------------------------------------

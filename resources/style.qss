@@ -1,3 +1,17 @@
+/* =============================================================
+   OpenBoard – Modern stylesheet
+   Color palette:
+     Surface-0  #FFFFFF  white (panels, inputs)
+     Surface-1  #F5F6F8  off-white (app background)
+     Surface-2  #F0F2F5  hover / subtle fills
+     Border     #D1D5DB  subtle border
+     Text       #1F2937  primary text
+     Muted      #6B7280  secondary / label text
+     Accent     #2563EB  interactive blue
+     Accent-lt  #DBEAFE  selection / focus highlight
+   ============================================================= */
+
+/* ── Dock palette content areas ─────────────────────────────── */
 QWidget#DockPaletteWidgetBox,
 QWidget#UBBoardThumbnailsView,
 QWidget#UBLibPathViewer,
@@ -9,281 +23,461 @@ QWidget#UBFeaturesNavigatorWidget,
 QWidget#PathList,
 QWidget#UBFeaturesCentralWidget
 {
-	background: #EEEEEE;
-	border-radius: 10px;
-	border: 2px solid #999999;
+    background: #FFFFFF;
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
 }
 
+/* ── Text selection ─────────────────────────────────────────── */
 QTextEdit,
 QLineEdit,
 QComboBox#DockPaletteWidgetComboBox QAbstractItemView
 {
-    selection-background-color: lightgreen;
-    selection-color: black;
+    selection-background-color: #DBEAFE;
+    selection-color: #1E3A5F;
 }
 
-
+/* ── Misc containers ────────────────────────────────────────── */
 QWidget#mAdditionalDataContainer
 {
-	border-radius: 10px;
-	border: 2px solid #999999;
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
 }
 
 QWidget#UBMediaVideoContainer
 {
-	background: #000000;
-	border-radius: 10px;
-	border: 2px solid #999999;
+    background: #000000;
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
 }
 
 QWidget#UBLibWebView
 {
-	background: #EEEEEE;
-	border-radius : 10px;
-	border: 2px solid #999999;
+    background: #FFFFFF;
+    border-radius: 6px;
+    border: 1px solid #D1D5DB;
 }
 
 QListView
 {
-      border: 0px;
+    border: none;
+    background: transparent;
+    outline: none;
+}
+
+QListView::item:selected
+{
+    background: #DBEAFE;
+    color: #1E3A5F;
+    border-radius: 4px;
+}
+
+QListView::item:hover:!selected
+{
+    background: #F0F2F5;
+    border-radius: 4px;
 }
 
 QWidget#UBFeatureProperties
 {
-      border: 2px;
+    border: none;
 }
 
 QWebView#SearchEngineView
 {
-	background:white;
+    background: white;
 }
 
 QColorDialog
 {
-	background: #EEEEEE;
+    background: #F5F6F8;
 }
 
+/* ── Panel title label (appears on dark background) ─────────── */
 QLabel#DockPaletteWidgetTitle
 {
-	color: #FFFFFF;
-	font-size : 18px;
-	font-weight:bold;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 0.3px;
 }
 
-QLineEdit#UBTGLineEdit,
+/* ── Input fields ───────────────────────────────────────────── */
+QLineEdit,
+QLineEdit#UBTGLineEdit
+{
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #1F2937;
+    selection-background-color: #DBEAFE;
+}
+
+QLineEdit:focus
+{
+    border-color: #93C5FD;
+    outline: none;
+}
+
 QLabel#UBTGMediaDropMeLabel
 {
-	background: white;
-	border: 1 solid #999999;
-	border-radius : 10px;
-	padding: 2px;
+    background: #F5F6F8;
+    border: 1px dashed #D1D5DB;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #6B7280;
+}
+
+/* ── ComboBox ───────────────────────────────────────────────── */
+QComboBox
+{
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #1F2937;
+    min-height: 24px;
+}
+
+QComboBox:focus
+{
+    border-color: #93C5FD;
+}
+
+QComboBox::drop-down
+{
+    border: none;
+    width: 20px;
+}
+
+QComboBox::down-arrow
+{
+    image: url(:/images/down_arrow.png);
+    width: 10px;
+    height: 10px;
 }
 
 QComboBox#DockPaletteWidgetComboBox
 {
-	background: white;
-	border-radius : 10px;
-	padding: 2px;
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    padding: 4px 8px;
 }
 
 QComboBox#DockPaletteWidgetComboBox:drop-down
 {
-	background: white;
-	width:1px;
-	height:1px;
-	margin: 9px 5px 0px 0px;
+    background: transparent;
+    width: 1px;
+    height: 1px;
+    margin: 9px 5px 0px 0px;
 }
 
 QComboBox#DockPaletteWidgetComboBox::down-arrow
 {
-	image:url(:/images/down_arrow.png);
-	background:#BBBBBB;
-	border: 2px solid #999999;
-	height:16px;
-	width:16px;
-	padding: 0px 0px 0px 0px;
-	margin: 5px 10px 0px 0px;
-	border-radius: 10px;
+    image: url(:/images/down_arrow.png);
+    background: #E5E7EB;
+    border: 1px solid #D1D5DB;
+    height: 14px;
+    width: 14px;
+    padding: 0px;
+    margin: 5px 8px 0px 0px;
+    border-radius: 3px;
 }
 
+/* ── Generic push buttons ───────────────────────────────────── */
+QPushButton
+{
+    background-color: #F3F4F6;
+    color: #374151;
+    border: 1px solid #D1D5DB;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+QPushButton:hover
+{
+    background-color: #E5E7EB;
+    border-color: #9CA3AF;
+}
+
+QPushButton:pressed
+{
+    background-color: #D1D5DB;
+}
+
+QPushButton:disabled
+{
+    color: #9CA3AF;
+    border-color: #E5E7EB;
+}
+
+/* Dock-panel specific buttons */
 QPushButton#DockPaletteWidgetButton
 {
-	background-color : #DDDDDD;
-	color : #555555;
-	border-radius : 6px;
-	padding : 5px;
-	font-weight : bold;
-	font-size : 12px;
+    background-color: #F3F4F6;
+    color: #374151;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-weight: bold;
+    font-size: 12px;
 }
 
+QPushButton#DockPaletteWidgetButton:hover
+{
+    background-color: #E5E7EB;
+}
+
+QPushButton#DockPaletteWidgetButton:checked
+{
+    background-color: #DBEAFE;
+    color: #1D4ED8;
+    border-color: #93C5FD;
+}
+
+/* ── Teacher guide text area ────────────────────────────────── */
 QTextEdit#TeacherStudentBox
 {
-	background: white;
-	border: 2px solid #999999;
-	border-radius: 10px;
+    background: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
 }
 
-QPushButton#DockPaletteWidgetButton::checked
+/* ── Scrollbars (minimal, modern) ───────────────────────────── */
+QScrollBar:vertical
 {
-	background-color: #BBBBBB;
-}
-
-QScrollBar::vertical
-{
-	background:transparent;
-	margin: 23px 1px 25px 1px;
+    background: transparent;
+    width: 8px;
+    margin: 0;
 }
 
 QScrollBar::handle:vertical
 {
-	border: 2px solid #999999;
-	border-radius:6px;
-	background:#BBBBBB;
-	min-height:40px;
+    background: #CBD5E1;
+    border-radius: 4px;
+    min-height: 32px;
 }
 
-QScrollBar::add-line:vertical
+QScrollBar::handle:vertical:hover
 {
-	image:url(:/images/down_arrow.png);
-	height:16px;
-	background:#BBBBBB;
-	border:2px solid #999999;
-	border-radius:6px;
-	margin: 1px 1px 4px 1px;
-	subcontrol-position:bottom;
-	subcontrol-origin:margin;
+    background: #94A3B8;
 }
 
+QScrollBar::add-line:vertical,
 QScrollBar::sub-line:vertical
 {
-	image:url(:/images/up_arrow.png);
-	height:16px;
-	background:#BBBBBB;
-	border:2px solid #999999;
-	border-radius:6px;
-	margin: 2px 1px 1px 1px;
-	subcontrol-position:top;
-	subcontrol-origin:margin;
+    height: 0;
+    background: transparent;
 }
 
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical
 {
-	background:transparent;
+    background: transparent;
 }
 
-QScrollBar::horizontal
+QScrollBar:horizontal
 {
-	background:transparent;
-	margin: 1px 23px 1px 25px;
+    background: transparent;
+    height: 8px;
+    margin: 0;
 }
 
 QScrollBar::handle:horizontal
 {
-	border: 2px solid #999999;
-	border-radius:6px;
-	background:#BBBBBB;
-	min-width:40px;
+    background: #CBD5E1;
+    border-radius: 4px;
+    min-width: 32px;
 }
 
-QScrollBar::add-line:horizontal
+QScrollBar::handle:horizontal:hover
 {
-	image:url(:/images/right_arrow.png);
-	width:16px;
-	background:#BBBBBB;
-	border:2px solid #999999;
-	border-radius:6px;
-	margin: 1px 1px 1px 4px;
-	subcontrol-position:right;
-	subcontrol-origin:margin;
+    background: #94A3B8;
 }
 
+QScrollBar::add-line:horizontal,
 QScrollBar::sub-line:horizontal
 {
-	image:url(:/images/left_arrow.png);
-	width:16px;
-	background:#BBBBBB;
-	border:2px solid #999999;
-	border-radius:6px;
-	margin: 1px 2px 1px 1px;
-	subcontrol-position:left;
-	subcontrol-origin:margin;
+    width: 0;
+    background: transparent;
 }
 
-QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal
 {
-	background:transparent;
+    background: transparent;
 }
 
-QSlider::handle::horizontal
+/* ── Sliders ────────────────────────────────────────────────── */
+QSlider::groove:horizontal
 {
-	background-color:#EEEEEE;
-	margin-top:-5px;
-	margin-bottom:-5px;
-	height:20px;
-	width:18px;
-	border-radius:10px;
-	border:1px solid #555555;
+    background: #E5E7EB;
+    height: 6px;
+    border-radius: 3px;
+    border: none;
 }
 
-QSlider::groove::horizontal
+QSlider::sub-page:horizontal
 {
-	background-color:#999999;
-	height:10px;
-	border-radius:5px;
-	border:1px solid #555555;
+    background: #93C5FD;
+    height: 6px;
+    border-radius: 3px;
 }
 
+QSlider::handle:horizontal
+{
+    background: #2563EB;
+    width: 16px;
+    height: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+    border: none;
+}
+
+QSlider::handle:horizontal:hover
+{
+    background: #1D4ED8;
+}
+
+/* ── Dock widgets ───────────────────────────────────────────── */
+QDockWidget
+{
+    font-size: 12px;
+    font-weight: bold;
+    color: #374151;
+    titlebar-close-icon: url(:/images/close.svg);
+}
+
+QDockWidget::title
+{
+    background: #F5F6F8;
+    border-bottom: 1px solid #D1D5DB;
+    padding: 6px 8px;
+}
+
+QDockWidget#presentationControlPanel::title
+{
+    background: #1E3A5F;
+    color: white;
+    padding: 6px 8px;
+}
+
+/* ── Teacher guide labels ───────────────────────────────────── */
 QLabel#UBTGEditionDocumentTitle
 {
-    color: black;
-    font-size : 14px;
-    font-weight:bold;
+    color: #1F2937;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 QLabel#UBTGPresentationDocumentTitle
 {
-    color: black;
-    font-size : 12px;
-    font-weight:bold;
+    color: #374151;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 QLabel#UBTGPageNumberLabel
 {
-    color: black;
-    font-size : 12px;
-    font-weight:bold;
+    color: #374151;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 UBTGAdaptableText#UBTGEditionPageTitle,
 UBTGAdaptableText#UBTGEditionComment
-{ 
-    color: black;
-    font-size : 12px;
+{
+    color: #374151;
+    font-size: 12px;
 }
 
 UBTGAdaptableText#UBTGPresentationPageTitle
 {
-    color: black;
-    font-size:16px;
-    font-weight:bold;
-    border : none;
+    color: #111827;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
 }
 
 UBTGAdaptableText#UBTGPresentationComment
 {
-    color: black;
-    font-size:12px;
-    border : none;
-}
-  
-QFrame#UBTGSeparator
-{
-    background-color: #cccccc;
+    color: #374151;
+    font-size: 12px;
+    border: none;
 }
 
-UBTGAdaptableText {
-   background-color: white; 
-   border:1 solid #999999; 
-   border-radius : 10px; 
-   padding: 2px;
+QFrame#UBTGSeparator
+{
+    background-color: #E5E7EB;
+}
+
+UBTGAdaptableText
+{
+    background-color: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+/* ── Group boxes (used in presentation panel) ───────────────── */
+QGroupBox
+{
+    font-size: 11px;
+    font-weight: bold;
+    color: #6B7280;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    margin-top: 10px;
+    padding-top: 6px;
+}
+
+QGroupBox::title
+{
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 4px;
+    color: #6B7280;
+}
+
+/* ── Tooltips ───────────────────────────────────────────────── */
+QToolTip
+{
+    background: #1F2937;
+    color: #F9FAFB;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+/* ── CheckBox / RadioButton ─────────────────────────────────── */
+QCheckBox
+{
+    color: #374151;
+    spacing: 6px;
+    font-size: 12px;
+}
+
+QCheckBox::indicator
+{
+    width: 16px;
+    height: 16px;
+    border: 1px solid #D1D5DB;
+    border-radius: 3px;
+    background: #FFFFFF;
+}
+
+QCheckBox::indicator:checked
+{
+    background: #2563EB;
+    border-color: #2563EB;
+    image: url(:/images/check.svg);
+}
+
+QCheckBox::indicator:hover
+{
+    border-color: #93C5FD;
 }
