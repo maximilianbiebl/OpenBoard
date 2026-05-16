@@ -176,12 +176,116 @@ if (Test-Path $qtQmake) {
 
 Write-Section "Checking OpenBoard-ThirdParty"
 $projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$thirdParty = Resolve-Path (Join-Path $projectRoot "..\OpenBoard-ThirdParty") -ErrorAction SilentlyContinue
-if ($thirdParty) {
+$thirdPartyPath = Join-Path $projectRoot "..\OpenBoard-ThirdParty"
+$thirdParty = $null
+if (Test-Path $thirdPartyPath) {
+  $thirdParty = Resolve-Path $thirdPartyPath
   Set-UserEnv -Name "OPENBOARD_THIRDPARTY" -Value $thirdParty.Path
+  Write-Host "OpenBoard-ThirdParty found at $($thirdParty.Path)"
 } else {
-  Write-Warning "OpenBoard-ThirdParty not found next to the repository. Ensure it is available before building."
+  Write-Warning "OpenBoard-ThirdParty not found next to the repository."
+  Write-Warning "Expected location: $(Resolve-Path (Join-Path $projectRoot '..') -ErrorAction SilentlyContinue)\OpenBoard-ThirdParty"
+  Write-Warning "Clone or create the ThirdParty directory before building."
+}
+
+Write-Section "Checking Poppler"
+if ($thirdParty) {
+  $popplerBase = Join-Path $thirdParty.Path "poppler"
+  $popplerInc  = Join-Path $popplerBase "include"
+  $popplerLib  = Join-Path $popplerBase "lib"
+  $popplerBin  = Join-Path $popplerBase "bin"
+
+  if ((Test-Path $popplerInc) -and (Test-Path $popplerLib)) {
+    Write-Host "Poppler found at $popplerBase"
+  } else {
+    Write-Warning "Poppler not found in $popplerBase"
+    Write-Host ""
+    Write-Host "To install poppler for Windows:"
+    Write-Host "  Option A – vcpkg (recommended if you have vcpkg):"
+    Write-Host "    vcpkg install poppler:x64-windows"
+    Write-Host "    Then copy installed files to $popplerBase"
+    Write-Host ""
+    Write-Host "  Option B – Pre-built release from https://github.com/oschwartz10612/poppler-windows/releases"
+    Write-Host "    1. Download the latest Release-xx.xx.x.zip"
+    Write-Host "    2. Extract and place in:"
+    Write-Host "       $popplerBase\include\   (poppler headers)"
+    Write-Host "       $popplerBase\lib\       (import .lib files)"
+    Write-Host "       $popplerBase\bin\       (runtime .dll files)"
+    Write-Host ""
+
+    $download = Read-Host "Auto-download pre-built poppler from GitHub? (y/N)"
+    if ($download -eq 'y' -or $download -eq 'Y') {
+      try {
+        Write-Host "Fetching latest poppler release info..."
+        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/oschwartz10612/poppler-windows/releases/latest" -ErrorAction Stop
+        $asset = $releases.assets | Where-Object { $_.name -match '^Release-.*\.zip$' } | Select-Object -First 1
+        if (-not $asset) {
+          Write-Warning "Could not find a release ZIP in the latest release. Download manually."
+        } else {
+          $zipPath = Join-Path $env:TEMP "poppler-windows.zip"
+          $extractPath = Join-Path $env:TEMP "poppler-extract"
+          Write-Host "Downloading $($asset.browser_download_url) ..."
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -UseBasicParsing
+          Write-Host "Extracting..."
+          if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
+          Expand-Archive -Path $zipPath -DestinationPath $extractPath
+          # The archive typically has one top-level folder (e.g. poppler-xx.xx.x)
+          $innerDir = Get-ChildItem $extractPath -Directory | Select-Object -First 1
+          if ($innerDir) {
+            if (-not (Test-Path $popplerBase)) { New-Item -ItemType Directory -Path $popplerBase | Out-Null }
+            # Copy Library subfolder as include/lib/bin
+            $libDir = Join-Path $innerDir.FullName "Library"
+            if (Test-Path $libDir) {
+              Copy-Item (Join-Path $libDir "include") $popplerBase -Recurse -Force
+              Copy-Item (Join-Path $libDir "lib")     $popplerBase -Recurse -Force
+              Copy-Item (Join-Path $libDir "bin")     $popplerBase -Recurse -Force
+              Write-Host "Poppler installed to $popplerBase"
+            } else {
+              Write-Warning "Unexpected archive structure. Copy headers/libs/bins manually to $popplerBase"
+            }
+          }
+          Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+          Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+      } catch {
+        Write-Warning "Auto-download failed: $_"
+        Write-Warning "Download poppler manually from https://github.com/oschwartz10612/poppler-windows/releases"
+      }
+    }
+  }
+} else {
+  Write-Warning "Skipping poppler check — OpenBoard-ThirdParty directory not set up yet."
+}
+
+Write-Section "Checking QuaZip"
+if ($thirdParty) {
+  $quazipBase = Join-Path $thirdParty.Path "quazip"
+  $quazipLibDir = Join-Path $quazipBase "lib\win32"
+  $acceptedLibs = @("quazip.lib","quazip1-qt6.lib","quazip-qt6.lib","quazip1-qt5.lib","quazip-qt5.lib","quazip1.lib")
+  $quazipLibFound = $false
+  foreach ($lib in $acceptedLibs) {
+    if (Test-Path (Join-Path $quazipLibDir $lib)) {
+      $quazipLibFound = $true
+      Write-Host "QuaZip lib found: $lib"
+      break
+    }
+  }
+  if (-not $quazipLibFound) {
+    Write-Warning "QuaZip import library not found in $quazipLibDir"
+    Write-Host "QuaZip must be built from source. Steps:"
+    Write-Host "  1. Place QuaZip sources in $quazipBase (must contain CMakeLists.txt)"
+    Write-Host "  2. Open 'x64 Native Tools Command Prompt for VS 2022'"
+    Write-Host "  3. Run:"
+    Write-Host "       cd /d `"$quazipBase`""
+    Write-Host "       if not exist build mkdir build"
+    Write-Host "       cd build"
+    Write-Host "       cmake .. -G `"NMake Makefiles`" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=`"$($qtDir)`""
+    Write-Host "       nmake"
+    Write-Host "  4. Copy the generated .lib to $quazipLibDir"
+  }
 }
 
 Write-Section "Done"
 Write-Host "Restart your terminal to pick up updated user PATH entries."
+Write-Host ""
+Write-Host "Build with:  release_scripts\windows\release.win7.vc9.bat"

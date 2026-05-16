@@ -16,7 +16,11 @@ REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 REM ---------------------------------------------------------------------
 
 set SCRIPT_PATH=%~dp0
-set PROJECT_ROOT=%SCRIPT_PATH%\..\..
+
+REM Resolve PROJECT_ROOT to an absolute path for Inno Setup
+pushd %SCRIPT_PATH%\..\..
+set PROJECT_ROOT=%CD%
+popd
 
 set APPLICATION_NAME=OpenBoard
 if "%QT_DIR%"=="" set QT_DIR=C:\Qt\6.6.3\msvc2022_64

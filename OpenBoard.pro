@@ -118,11 +118,35 @@ win32 {
    LIBS += -lOle32
 
    THIRD_PARTY_PATH=../OpenBoard-ThirdParty
-   include($$THIRD_PARTY_PATH/libs.pri)
+
+   # Include general third-party config if available (may provide poppler, etc.)
+   exists($$THIRD_PARTY_PATH/libs.pri) {
+      include($$THIRD_PARTY_PATH/libs.pri)
+   }
+
+   # Poppler: explicit Windows config pointing at ThirdParty structure.
+   # Expected layout: ../OpenBoard-ThirdParty/poppler/{include,lib,bin}
+   # If libs.pri already provides poppler this is a no-op (duplicate -l is safe).
+   POPPLER_PATH = $$THIRD_PARTY_PATH/poppler
+   exists($$POPPLER_PATH/include) {
+      INCLUDEPATH += $$POPPLER_PATH/include
+   } else {
+      warning("Poppler headers not found at $$POPPLER_PATH/include")
+      warning("Download a pre-built poppler package into ../OpenBoard-ThirdParty/poppler/")
+   }
+   exists($$POPPLER_PATH/lib/poppler.lib) {
+      LIBS += -L$$POPPLER_PATH/lib -lpoppler -lpoppler-cpp
+   } else: exists($$POPPLER_PATH/lib) {
+      LIBS += -L$$POPPLER_PATH/lib -lpoppler -lpoppler-cpp
+   } else {
+      warning("Poppler import libs not found at $$POPPLER_PATH/lib")
+   }
 
    DEPENDPATH += $$THIRD_PARTY_PATH/quazip/
    INCLUDEPATH += $$THIRD_PARTY_PATH/quazip/
-   include($$THIRD_PARTY_PATH/quazip/quazip.pri)
+   exists($$THIRD_PARTY_PATH/quazip/quazip.pri) {
+      include($$THIRD_PARTY_PATH/quazip/quazip.pri)
+   }
    QUAZIP_LIB_DIR = $$THIRD_PARTY_PATH/quazip/lib/win32
    exists($$QUAZIP_LIB_DIR) {
       !exists($$QUAZIP_LIB_DIR/quazip.lib) {
