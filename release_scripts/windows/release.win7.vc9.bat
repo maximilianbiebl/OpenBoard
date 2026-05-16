@@ -129,7 +129,7 @@ set PRODUCT_DIR=build\win32\release\product
 
 REM vcpkg runtime DLLs (zlib, libjpeg, libcurl etc.) not handled by windeployqt
 set VCPKG_BIN=C:\vcpkg\installed\x64-windows\bin
-for %%F in (z.dll jpeg8.dll jpeg62.dll libcurl.dll bz2.dll) do (
+for %%F in (z.dll zlib1.dll jpeg8.dll jpeg62.dll libcurl.dll bz2.dll) do (
     if exist "%VCPKG_BIN%\%%F" xcopy /Y "%VCPKG_BIN%\%%F" "%PRODUCT_DIR%\" >nul
 )
 
@@ -141,6 +141,7 @@ if exist "..\OpenBoard-ThirdParty\poppler\bin" (
 REM QuaZip DLL (may live in bin\, lib\win32\, or build\quazip\)
 for %%D in (..\OpenBoard-ThirdParty\quazip\bin ..\OpenBoard-ThirdParty\quazip\lib\win32 ..\OpenBoard-ThirdParty\quazip\build\quazip) do (
     if exist "%%D\quazip1-qt6.dll" xcopy /Y "%%D\quazip1-qt6.dll" "%PRODUCT_DIR%\" >nul 2>nul
+    if exist "%%D\zlib1.dll" xcopy /Y "%%D\zlib1.dll" "%PRODUCT_DIR%\" >nul 2>nul
 )
 
 echo === Copying customizations ===
