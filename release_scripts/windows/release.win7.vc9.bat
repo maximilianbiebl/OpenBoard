@@ -49,7 +49,7 @@ if not exist "%QT_BIN%\qmake.exe" (
 
 if not exist "%LRELEASE%" (
     echo ERROR: lrelease.exe not found in %QT_BIN%
-    echo Install Qt Tools (qttools) and rerun setup-windows-env.ps1
+    echo Install Qt Tools ^(qttools^) and rerun setup-windows-env.ps1
     GOTO EXIT_WITH_ERROR
 )
 
