@@ -17,6 +17,7 @@
 #include "board/UBDrawingController.h"
 #include "core/UBAudienceToolState.h"
 #include "core/UB.h"
+#include "domain/UBGraphicsScene.h"
 
 UBAudienceWindow::UBAudienceWindow(UBBoardController* boardController,
                                    UBAudienceToolState* toolState,
@@ -67,7 +68,7 @@ void UBAudienceWindow::syncViewport(UBBoardView* controlView)
 
     // Mirror the scene (already set on scene-change, but be safe).
     if (controlView->scene() && mOwnView->scene() != controlView->scene())
-        mOwnView->setScene(controlView->scene());
+        mOwnView->setScene(controlView->scene().get());
 
     // Scale so the audience fills the window with the same content as the
     // control view.
