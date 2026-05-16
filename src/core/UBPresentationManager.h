@@ -43,7 +43,7 @@ public:
     bool followMode() const { return mFollowMode; }
     bool shouldSyncAudienceViewport() const;
     UBAudienceToolState* audienceToolState() const { return mAudienceToolState; }
-    UBAudienceWindow* audienceWindow() const { return mAudienceWindow; }
+    UBAudienceWindow*    audienceWindow()    const { return mAudienceWindow; }
 
 public slots:
     void startPresentation();
@@ -60,25 +60,29 @@ private:
     void applyRunningState();
     void applyAudienceToolState();
     void updateAudienceViewFrame();
+    void updateStartStopStyle();
 
     QPointer<UBApplicationController> mAppController;
-    QPointer<UBBoardController> mBoardController;
-    QPointer<UBDisplayManager> mDisplayManager;
-    QPointer<UBMainWindow> mPresenterWindow;
-    QPointer<UBBoardView> mDisplayView;
+    QPointer<UBBoardController>       mBoardController;
+    QPointer<UBDisplayManager>        mDisplayManager;
+    QPointer<UBMainWindow>            mPresenterWindow;
+    QPointer<UBBoardView>             mDisplayView;
 
     UBAudienceToolState* mAudienceToolState{nullptr};
-    UBAudienceWindow* mAudienceWindow{nullptr};
-    QDockWidget* mPresenterPanel{nullptr};
-    QCheckBox* mStartStop{nullptr};
-    QCheckBox* mFollowModeToggle{nullptr};
-    QCheckBox* mAudienceToolbarToggle{nullptr};
-    QCheckBox* mPenToggle{nullptr};
-    QCheckBox* mMoveToggle{nullptr};
-    QCheckBox* mShapeToggle{nullptr};
-    QCheckBox* mZoomToggle{nullptr};
-    QCheckBox* mFreezeAudienceToggle{nullptr};
-    QComboBox* mAudienceScreenSelector{nullptr};
+    UBAudienceWindow*    mAudienceWindow{nullptr};
+    QDockWidget*         mPresenterPanel{nullptr};
+
+    // Start/Stop is a checkable QPushButton so it can be styled per state.
+    QPushButton* mStartStop{nullptr};
+
+    QCheckBox*   mFollowModeToggle{nullptr};
+    QCheckBox*   mAudienceToolbarToggle{nullptr};
+    QCheckBox*   mPenToggle{nullptr};
+    QCheckBox*   mMoveToggle{nullptr};
+    QCheckBox*   mShapeToggle{nullptr};
+    QCheckBox*   mZoomToggle{nullptr};
+    QCheckBox*   mFreezeAudienceToggle{nullptr};
+    QComboBox*   mAudienceScreenSelector{nullptr};
     QPushButton* mPreviousPageButton{nullptr};
     QPushButton* mNextPageButton{nullptr};
     QPushButton* mAudiencePreviewButton{nullptr};

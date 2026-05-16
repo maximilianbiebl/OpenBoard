@@ -20,6 +20,8 @@ class UBBoardView;
 class UBAudienceToolState;
 class QToolBar;
 class QAction;
+class QResizeEvent;
+class QShowEvent;
 
 class UBAudienceWindow : public QMainWindow
 {
@@ -33,14 +35,19 @@ public:
 
     UBBoardView* boardView() const { return mOwnView; }
 
-    // Follow-mode: sync audience viewport to presenter's current view, clamped to page.
-    void syncViewport(UBBoardView* controlView);
-
-    // Reset: show the full page filling the audience window (no black bars).
+    // Show full page fitted to the window (no black bars, no backstage).
     void fitPage();
+
+    // Follow-mode: show the portion of the page the presenter is viewing.
+    // Clamped to page rect — audience never sees backstage.
+    void syncViewport(UBBoardView* controlView);
 
 public slots:
     void syncFromToolState();
+
+protected:
+    void showEvent(QShowEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     void onActiveSceneChanged();
@@ -48,10 +55,12 @@ private slots:
 private:
     void buildToolbar();
     void connectSignals();
+
+    // Page rectangle in scene coordinates (centred at origin).
     QRectF pageRectInScene() const;
 
-    UBBoardView*               mOwnView{nullptr};
-    QPointer<UBBoardController> mBoardController;
+    UBBoardView*                  mOwnView{nullptr};
+    QPointer<UBBoardController>   mBoardController;
     QPointer<UBAudienceToolState> mToolState;
 
     QToolBar* mToolbar{nullptr};

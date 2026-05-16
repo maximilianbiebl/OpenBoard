@@ -13,6 +13,8 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDockWidget>
+#include <QFrame>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -29,6 +31,10 @@
 #include "gui/UBAudienceWindow.h"
 #include "gui/UBMainWindow.h"
 
+// ---------------------------------------------------------------------------
+// Construction
+// ---------------------------------------------------------------------------
+
 UBPresentationManager::UBPresentationManager(UBApplicationController* appController,
                                              UBBoardController* boardController,
                                              UBDisplayManager* displayManager,
@@ -44,13 +50,15 @@ UBPresentationManager::UBPresentationManager(UBApplicationController* appControl
 {
     mAudienceToolState = new UBAudienceToolState(this);
 
-    // UBAudienceWindow creates its OWN UBBoardView internally.
-    // mDisplayView is NOT touched here — it stays with the display manager.
+    // UBAudienceWindow owns its own UBBoardView — mDisplayView is untouched.
     mAudienceWindow = new UBAudienceWindow(mBoardController, mAudienceToolState, nullptr);
 
     createPresenterControls();
     connectPresenterControls();
     refreshAudienceScreenSelector();
+
+    // Apply the initial tool state so UBAudienceWindow and its toolbar are
+    // already in the correct state before the first presentation starts.
     applyAudienceToolState();
 }
 
@@ -59,6 +67,10 @@ UBPresentationManager::~UBPresentationManager()
     if (mAudienceWindow)
         mAudienceWindow->hide();
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 bool UBPresentationManager::shouldSyncAudienceViewport() const
 {
@@ -86,6 +98,7 @@ void UBPresentationManager::setRunning(bool enabled)
     {
         QSignalBlocker blocker(mStartStop);
         mStartStop->setChecked(enabled);
+        updateStartStopStyle();
     }
 
     applyRunningState();
@@ -97,6 +110,8 @@ void UBPresentationManager::setFollowMode(bool follow)
 
     if (mFollowMode)
         updateAudienceViewFrame();
+    else
+        mAudienceWindow->fitPage(); // entering free mode: show full page first
 }
 
 void UBPresentationManager::resetAudienceFocus()
@@ -107,65 +122,188 @@ void UBPresentationManager::resetAudienceFocus()
     mAudienceWindow->fitPage();
 }
 
+// ---------------------------------------------------------------------------
+// Presenter control panel
+// ---------------------------------------------------------------------------
+
+static QGroupBox* makeGroup(const QString& title)
+{
+    auto* g = new QGroupBox(title);
+    g->setStyleSheet(
+        "QGroupBox {"
+        "  font-weight: bold;"
+        "  border: 1px solid #cccccc;"
+        "  border-radius: 6px;"
+        "  margin-top: 8px;"
+        "  padding-top: 4px;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 8px;"
+        "  color: #555555;"
+        "}");
+    return g;
+}
+
 void UBPresentationManager::createPresenterControls()
 {
     if (!mPresenterWindow)
         return;
 
-    mPresenterPanel = new QDockWidget(tr("Presentation Control"), mPresenterWindow);
+    mPresenterPanel = new QDockWidget(tr("Presentation"), mPresenterWindow);
     mPresenterPanel->setObjectName("presentationControlPanel");
+    mPresenterPanel->setFeatures(QDockWidget::DockWidgetMovable |
+                                 QDockWidget::DockWidgetFloatable);
 
-    QWidget* panel = new QWidget(mPresenterPanel);
-    auto* layout = new QVBoxLayout(panel);
-    layout->setContentsMargins(8, 8, 8, 8);
+    QWidget* root = new QWidget(mPresenterPanel);
+    root->setMinimumWidth(220);
+    auto* rootLayout = new QVBoxLayout(root);
+    rootLayout->setContentsMargins(8, 8, 8, 8);
+    rootLayout->setSpacing(8);
 
-    mStartStop            = new QCheckBox(tr("Presentation running"));
-    mFollowModeToggle     = new QCheckBox(tr("Follow mode"));
-    mAudienceToolbarToggle = new QCheckBox(tr("Audience toolbar visible"));
-    mPenToggle            = new QCheckBox(tr("Pen enabled"));
-    mMoveToggle           = new QCheckBox(tr("Move enabled"));
-    mShapeToggle          = new QCheckBox(tr("Shape enabled"));
-    mZoomToggle           = new QCheckBox(tr("Zoom/Pan enabled"));
-    mFreezeAudienceToggle = new QCheckBox(tr("Freeze audience view"));
-    mAudienceScreenSelector = new QComboBox();
-    mPreviousPageButton   = new QPushButton(tr("◀  Previous page"));
-    mNextPageButton       = new QPushButton(tr("Next page  ▶"));
-    mAudiencePreviewButton = new QPushButton(tr("Bring audience window to front"));
-    mResetFocusButton     = new QPushButton(tr("Reset audience focus"));
+    // ── Start / Stop ──────────────────────────────────────────────────────
+    mStartStop = new QPushButton(tr("▶  Start Presentation"), root);
+    mStartStop->setCheckable(true);
+    mStartStop->setMinimumHeight(40);
+    mStartStop->setStyleSheet(
+        "QPushButton {"
+        "  background: #27ae60; color: white;"
+        "  border: none; border-radius: 8px;"
+        "  font-size: 14px; font-weight: bold;"
+        "}"
+        "QPushButton:hover  { background: #2ecc71; }"
+        "QPushButton:checked {"
+        "  background: #c0392b;"
+        "}"
+        "QPushButton:checked:hover { background: #e74c3c; }");
+    rootLayout->addWidget(mStartStop);
 
-    mFollowModeToggle->setChecked(true);
-    mAudienceToolbarToggle->setChecked(true);
-    mPenToggle->setChecked(true);
-    mMoveToggle->setChecked(true);
-    mShapeToggle->setChecked(true);
-    mZoomToggle->setChecked(true);
-    mAudiencePreviewButton->setEnabled(false);
+    // ── Screen selection ──────────────────────────────────────────────────
+    {
+        auto* g = makeGroup(tr("Audience Screen"));
+        auto* gl = new QVBoxLayout(g);
+        gl->setSpacing(4);
 
-    layout->addWidget(mStartStop);
-    layout->addWidget(mFollowModeToggle);
-    layout->addWidget(mAudienceToolbarToggle);
-    layout->addSpacing(8);
-    layout->addWidget(new QLabel(tr("Audience tools")));
-    layout->addWidget(mPenToggle);
-    layout->addWidget(mMoveToggle);
-    layout->addWidget(mShapeToggle);
-    layout->addWidget(mZoomToggle);
-    layout->addWidget(mFreezeAudienceToggle);
-    layout->addSpacing(8);
-    layout->addWidget(new QLabel(tr("Page navigation")));
-    auto* navLayout = new QHBoxLayout();
-    navLayout->addWidget(mPreviousPageButton);
-    navLayout->addWidget(mNextPageButton);
-    layout->addLayout(navLayout);
-    layout->addSpacing(8);
-    layout->addWidget(new QLabel(tr("Audience screen")));
-    layout->addWidget(mAudienceScreenSelector);
-    layout->addWidget(mAudiencePreviewButton);
-    layout->addWidget(mResetFocusButton);
-    layout->addStretch();
+        mAudienceScreenSelector = new QComboBox();
+        gl->addWidget(mAudienceScreenSelector);
 
-    mPresenterPanel->setWidget(panel);
+        auto* btnRow = new QHBoxLayout();
+        mAudiencePreviewButton = new QPushButton(tr("↗ Bring to Front"));
+        mAudiencePreviewButton->setEnabled(false);
+        mAudiencePreviewButton->setToolTip(tr("Move audience window to front on the selected screen"));
+        btnRow->addWidget(mAudiencePreviewButton);
+        gl->addLayout(btnRow);
+
+        rootLayout->addWidget(g);
+    }
+
+    // ── Viewport / Follow ─────────────────────────────────────────────────
+    {
+        auto* g = makeGroup(tr("Viewport"));
+        auto* gl = new QVBoxLayout(g);
+        gl->setSpacing(4);
+
+        mFollowModeToggle = new QCheckBox(tr("Follow Mode"));
+        mFollowModeToggle->setToolTip(
+            tr("When enabled, the audience view follows the presenter's zoom and pan,\n"
+               "clamped to the page (the audience never sees backstage content)."));
+        mFollowModeToggle->setChecked(true);
+        gl->addWidget(mFollowModeToggle);
+
+        mResetFocusButton = new QPushButton(tr("↺ Reset Audience Focus"));
+        mResetFocusButton->setToolTip(tr("Snap the audience view back to the full page"));
+        gl->addWidget(mResetFocusButton);
+
+        rootLayout->addWidget(g);
+    }
+
+    // ── Page navigation ───────────────────────────────────────────────────
+    {
+        auto* g = makeGroup(tr("Page Navigation"));
+        auto* gl = new QHBoxLayout(g);
+        gl->setSpacing(6);
+
+        mPreviousPageButton = new QPushButton(tr("◀ Previous"));
+        mNextPageButton     = new QPushButton(tr("Next ▶"));
+
+        for (auto* b : {mPreviousPageButton, mNextPageButton})
+        {
+            b->setMinimumHeight(32);
+            b->setStyleSheet(
+                "QPushButton { border: 1px solid #aaa; border-radius: 6px; padding: 4px; }"
+                "QPushButton:hover { background: #e8e8e8; }"
+                "QPushButton:pressed { background: #d0d0d0; }");
+        }
+
+        gl->addWidget(mPreviousPageButton);
+        gl->addWidget(mNextPageButton);
+        rootLayout->addWidget(g);
+    }
+
+    // ── Audience tools ────────────────────────────────────────────────────
+    {
+        auto* g = makeGroup(tr("Audience Tools"));
+        auto* gl = new QVBoxLayout(g);
+        gl->setSpacing(4);
+
+        mAudienceToolbarToggle = new QCheckBox(tr("Toolbar visible"));
+        mAudienceToolbarToggle->setChecked(true);
+        gl->addWidget(mAudienceToolbarToggle);
+
+        auto* line = new QFrame();
+        line->setFrameShape(QFrame::HLine);
+        line->setFrameShadow(QFrame::Sunken);
+        gl->addWidget(line);
+
+        // 2-column grid for tool toggles
+        auto* toolGrid = new QHBoxLayout();
+        auto* col1 = new QVBoxLayout();
+        auto* col2 = new QVBoxLayout();
+        toolGrid->addLayout(col1);
+        toolGrid->addLayout(col2);
+
+        mPenToggle   = new QCheckBox(tr("Pen"));
+        mMoveToggle  = new QCheckBox(tr("Move"));
+        mShapeToggle = new QCheckBox(tr("Shape"));
+        mZoomToggle  = new QCheckBox(tr("Zoom/Pan"));
+
+        for (auto* cb : {mPenToggle, mMoveToggle, mShapeToggle, mZoomToggle})
+            cb->setChecked(true);
+
+        col1->addWidget(mPenToggle);
+        col1->addWidget(mShapeToggle);
+        col2->addWidget(mMoveToggle);
+        col2->addWidget(mZoomToggle);
+        gl->addLayout(toolGrid);
+
+        auto* line2 = new QFrame();
+        line2->setFrameShape(QFrame::HLine);
+        line2->setFrameShadow(QFrame::Sunken);
+        gl->addWidget(line2);
+
+        mFreezeAudienceToggle = new QCheckBox(tr("Freeze audience view"));
+        mFreezeAudienceToggle->setToolTip(
+            tr("Pauses all updates on the audience screen without stopping the presentation"));
+        gl->addWidget(mFreezeAudienceToggle);
+
+        rootLayout->addWidget(g);
+    }
+
+    rootLayout->addStretch();
+
+    mPresenterPanel->setWidget(root);
     mPresenterWindow->addDockWidget(Qt::RightDockWidgetArea, mPresenterPanel);
+}
+
+void UBPresentationManager::updateStartStopStyle()
+{
+    if (!mStartStop)
+        return;
+
+    if (mRunning)
+        mStartStop->setText(tr("⏹  Stop Presentation"));
+    else
+        mStartStop->setText(tr("▶  Start Presentation"));
 }
 
 void UBPresentationManager::connectPresenterControls()
@@ -173,31 +311,34 @@ void UBPresentationManager::connectPresenterControls()
     if (!mPresenterPanel)
         return;
 
-    connect(mStartStop, &QCheckBox::toggled, this, &UBPresentationManager::setRunning);
-    connect(mFollowModeToggle, &QCheckBox::toggled, this, &UBPresentationManager::setFollowMode);
+    connect(mStartStop, &QPushButton::toggled,
+            this, &UBPresentationManager::setRunning);
 
-    connect(mAudienceToolbarToggle, &QCheckBox::toggled, this, [this](bool checked) {
-        mAudienceToolState->setToolbarVisible(checked);
+    connect(mFollowModeToggle, &QCheckBox::toggled,
+            this, &UBPresentationManager::setFollowMode);
+
+    connect(mAudienceToolbarToggle, &QCheckBox::toggled, this, [this](bool v) {
+        mAudienceToolState->setToolbarVisible(v);
         applyAudienceToolState();
     });
-    connect(mPenToggle, &QCheckBox::toggled, this, [this](bool checked) {
-        mAudienceToolState->setPenEnabled(checked);
+    connect(mPenToggle, &QCheckBox::toggled, this, [this](bool v) {
+        mAudienceToolState->setPenEnabled(v);
         applyAudienceToolState();
     });
-    connect(mMoveToggle, &QCheckBox::toggled, this, [this](bool checked) {
-        mAudienceToolState->setMoveEnabled(checked);
+    connect(mMoveToggle, &QCheckBox::toggled, this, [this](bool v) {
+        mAudienceToolState->setMoveEnabled(v);
         applyAudienceToolState();
     });
-    connect(mShapeToggle, &QCheckBox::toggled, this, [this](bool checked) {
-        mAudienceToolState->setShapeEnabled(checked);
+    connect(mShapeToggle, &QCheckBox::toggled, this, [this](bool v) {
+        mAudienceToolState->setShapeEnabled(v);
         applyAudienceToolState();
     });
-    connect(mZoomToggle, &QCheckBox::toggled, this, [this](bool checked) {
-        mAudienceToolState->setZoomEnabled(checked);
+    connect(mZoomToggle, &QCheckBox::toggled, this, [this](bool v) {
+        mAudienceToolState->setZoomEnabled(v);
         applyAudienceToolState();
     });
-    connect(mFreezeAudienceToggle, &QCheckBox::toggled, this, [this](bool checked) {
-        mAudienceFrozen = checked;
+    connect(mFreezeAudienceToggle, &QCheckBox::toggled, this, [this](bool v) {
+        mAudienceFrozen = v;
         applyAudienceToolState();
     });
 
@@ -211,7 +352,11 @@ void UBPresentationManager::connectPresenterControls()
     connect(mAudienceScreenSelector,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
-            [this](int) { applyAudienceScreenSelection(); });
+            [this](int) {
+                // Only act if a presentation is already running.
+                if (mRunning)
+                    applyAudienceScreenSelection();
+            });
 
     connect(mAudiencePreviewButton, &QPushButton::clicked, this, [this] {
         if (!mAudienceWindow || !mRunning)
@@ -226,13 +371,11 @@ void UBPresentationManager::connectPresenterControls()
 
     if (mDisplayManager)
     {
-        connect(mDisplayManager,
-                &UBDisplayManager::availableScreenCountChanged,
-                this,
-                [this](int) { refreshAudienceScreenSelector(); });
+        connect(mDisplayManager, &UBDisplayManager::availableScreenCountChanged,
+                this, [this](int) { refreshAudienceScreenSelector(); });
     }
 
-    // Keep audience viewport in sync when the presenter pans/zooms (follow mode).
+    // Sync audience viewport whenever the presenter pans or zooms.
     if (mBoardController)
     {
         connect(mBoardController, &UBBoardController::controlViewportChanged,
@@ -257,16 +400,21 @@ void UBPresentationManager::refreshAudienceScreenSelector()
     {
         const QScreen* s = screens.at(i);
         mAudienceScreenSelector->addItem(
-            tr("Screen %1 (%2×%3)")
+            tr("Screen %1  (%2 × %3)")
                 .arg(i + 1)
                 .arg(s ? s->geometry().width()  : 0)
                 .arg(s ? s->geometry().height() : 0),
             i);
     }
 
+    // Default: second screen for audience (if available).
     mAudienceScreenSelector->setCurrentIndex(screens.size() > 1 ? 1 : 0);
     mAudienceScreenSelector->setEnabled(!screens.isEmpty());
 }
+
+// ---------------------------------------------------------------------------
+// Private: screen placement
+// ---------------------------------------------------------------------------
 
 void UBPresentationManager::applyAudienceScreenSelection()
 {
@@ -277,27 +425,37 @@ void UBPresentationManager::applyAudienceScreenSelection()
     if (screens.isEmpty())
         return;
 
-    int index = 0;
-    if (mAudienceScreenSelector)
-        index = qBound(0, mAudienceScreenSelector->currentIndex(), screens.size() - 1);
+    const int index = mAudienceScreenSelector
+        ? qBound(0, mAudienceScreenSelector->currentIndex(), screens.size() - 1)
+        : 0;
 
     QScreen* target = screens.at(index);
     if (!target)
         return;
 
-    // On Windows, moving to a different screen requires hiding first,
-    // then reassigning the screen handle, then calling platform showFullScreen.
-    mAudienceWindow->hide();
-
-    // Force native window handle creation so setScreen works.
-    mAudienceWindow->winId();
+    // Ensure the native window handle exists (required for QWindow::setScreen).
+    mAudienceWindow->create();
 
     if (QWindow* handle = mAudienceWindow->windowHandle())
-        handle->setScreen(target);
+    {
+        if (handle->screen() != target)
+        {
+            // On Windows, fullscreen state must be cleared before switching screens.
+            if (mAudienceWindow->isFullScreen())
+                mAudienceWindow->showNormal();
 
+            handle->setScreen(target);
+        }
+    }
+
+    // Place the window on the target screen and go fullscreen.
     mAudienceWindow->setGeometry(target->geometry());
     UBPlatformUtils::showFullScreen(mAudienceWindow);
 }
+
+// ---------------------------------------------------------------------------
+// Private: start / stop
+// ---------------------------------------------------------------------------
 
 void UBPresentationManager::applyRunningState()
 {
@@ -306,23 +464,32 @@ void UBPresentationManager::applyRunningState()
 
     if (mRunning)
     {
-        // Hide the display manager's view so the audience window is the only
-        // thing visible on the second screen.
+        // The display manager's existing display view must be hidden so the
+        // audience window is the only thing on the second screen.
         if (mDisplayView)
             mDisplayView->hide();
 
         if (mAudiencePreviewButton)
             mAudiencePreviewButton->setEnabled(true);
 
+        // Tool state must be applied before the window is shown so the toolbar
+        // is already in the correct state when it becomes visible.
         applyAudienceToolState();
+
+        // Show the audience window fullscreen on the selected screen.
+        // applyAudienceScreenSelection() calls UBPlatformUtils::showFullScreen()
+        // which triggers showEvent() → fitPage() on the audience window.
         applyAudienceScreenSelection();
+
+        // If follow-mode is active, sync the audience viewport to wherever
+        // the presenter is currently looking.
         updateAudienceViewFrame();
     }
     else
     {
         mAudienceWindow->hide();
 
-        // Restore the display manager's normal view.
+        // Restore the display manager's normal second-screen view.
         if (mDisplayView)
             mDisplayView->show();
 
@@ -331,13 +498,19 @@ void UBPresentationManager::applyRunningState()
     }
 }
 
+// ---------------------------------------------------------------------------
+// Private: tool state
+// ---------------------------------------------------------------------------
+
 void UBPresentationManager::applyAudienceToolState()
 {
     if (!mAudienceWindow)
         return;
 
+    // Push the full tool state to the window (toolbar visibility + enabled tools).
     mAudienceWindow->syncFromToolState();
 
+    // Additionally override interactivity based on running + frozen state.
     if (UBBoardView* v = mAudienceWindow->boardView())
     {
         const bool canInteract = mRunning && !mAudienceFrozen
@@ -347,6 +520,10 @@ void UBPresentationManager::applyAudienceToolState()
         mAudienceWindow->setUpdatesEnabled(!mAudienceFrozen);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Private: viewport sync
+// ---------------------------------------------------------------------------
 
 void UBPresentationManager::updateAudienceViewFrame()
 {
