@@ -10,6 +10,7 @@
 
 #include "UBAudienceWindow.h"
 
+#include <QActionGroup>
 #include <QResizeEvent>
 #include <QShowEvent>
 #include <QToolBar>
@@ -179,6 +180,7 @@ void UBAudienceWindow::buildToolbar()
     mToolbar->setMovable(false);
     mToolbar->setFloatable(false);
     mToolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    mToolbar->setIconSize(QSize(36, 36));
 
     // Style: translucent dark band that sits at the bottom of the screen
     // without distracting from the slide content.
@@ -200,10 +202,42 @@ void UBAudienceWindow::buildToolbar()
         "QToolButton:pressed{ background: rgba(255,255,255,60); }"
         "QToolButton:disabled{ color: rgba(255,255,255,80); }");
 
-    mPenAction   = mToolbar->addAction(tr("Pen"));
-    mMoveAction  = mToolbar->addAction(tr("Move"));
-    mShapeAction = mToolbar->addAction(tr("Shape"));
-    mZoomAction  = mToolbar->addAction(tr("Zoom"));
+    // Reuse OpenBoard's existing stylus palette icons so the audience toolbar
+    // looks visually consistent with the rest of the application.
+    {
+        QIcon icon;
+        icon.addFile(":images/stylusPalette/pen.png",   QSize(), QIcon::Normal, QIcon::Off);
+        icon.addFile(":images/stylusPalette/penOn.png", QSize(), QIcon::Normal, QIcon::On);
+        mPenAction = mToolbar->addAction(icon, tr("Pen"));
+    }
+    {
+        QIcon icon;
+        icon.addFile(":images/stylusPalette/arrow.png",   QSize(), QIcon::Normal, QIcon::Off);
+        icon.addFile(":images/stylusPalette/arrowOn.png", QSize(), QIcon::Normal, QIcon::On);
+        mMoveAction = mToolbar->addAction(icon, tr("Move"));
+    }
+    {
+        QIcon icon;
+        icon.addFile(":images/stylusPalette/line.png",   QSize(), QIcon::Normal, QIcon::Off);
+        icon.addFile(":images/stylusPalette/lineOn.png", QSize(), QIcon::Normal, QIcon::On);
+        mShapeAction = mToolbar->addAction(icon, tr("Shape"));
+    }
+    {
+        QIcon icon;
+        icon.addFile(":images/stylusPalette/hand.png",   QSize(), QIcon::Normal, QIcon::Off);
+        icon.addFile(":images/stylusPalette/handOn.png", QSize(), QIcon::Normal, QIcon::On);
+        mZoomAction = mToolbar->addAction(icon, tr("Zoom/Pan"));
+    }
+
+    // Checkable + exclusive so only the active tool appears pressed.
+    auto* toolGroup = new QActionGroup(this);
+    toolGroup->setExclusive(true);
+    for (auto* a : {mPenAction, mMoveAction, mShapeAction, mZoomAction})
+    {
+        a->setCheckable(true);
+        toolGroup->addAction(a);
+    }
+    mPenAction->setChecked(true); // default active tool
 
     connect(mPenAction,   &QAction::triggered, this, [] {
         UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pen);
@@ -217,6 +251,19 @@ void UBAudienceWindow::buildToolbar()
     connect(mZoomAction,  &QAction::triggered, this, [] {
         UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Hand);
     });
+
+    // Mirror stylus tool changes that come from anywhere (e.g. hardware stylus) back to the toolbar.
+    connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
+            this, [this](int tool) {
+                if (tool == UBStylusTool::Pen || tool == UBStylusTool::Marker)
+                    { QSignalBlocker b(mPenAction);   mPenAction->setChecked(true);   }
+                else if (tool == UBStylusTool::Selector || tool == UBStylusTool::Play)
+                    { QSignalBlocker b(mMoveAction);  mMoveAction->setChecked(true);  }
+                else if (tool == UBStylusTool::Line)
+                    { QSignalBlocker b(mShapeAction); mShapeAction->setChecked(true); }
+                else if (tool == UBStylusTool::Hand || tool == UBStylusTool::ZoomIn || tool == UBStylusTool::ZoomOut)
+                    { QSignalBlocker b(mZoomAction);  mZoomAction->setChecked(true);  }
+            });
 
     // Bottom edge — less intrusive during the presentation.
     addToolBar(Qt::BottomToolBarArea, mToolbar);

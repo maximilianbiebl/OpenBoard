@@ -2020,19 +2020,25 @@ void UBBoardView::drawForeground(QPainter* painter, const QRectF& rect)
 
         if (visible.left() < pageRect.left())
         {
-            painter->drawRect(QRectF(visible.left(), visible.top(), pageRect.left() - visible.left(), visible.height()));
+            painter->drawRect(QRectF(visible.left(), visible.top(),
+                                     pageRect.left() - visible.left(), visible.height()));
         }
         if (visible.right() > pageRect.right())
         {
-            painter->drawRect(QRectF(pageRect.right(), visible.top(), visible.right() - pageRect.right(), visible.height()));
+            painter->drawRect(QRectF(pageRect.right(), visible.top(),
+                                     visible.right() - pageRect.right(), visible.height()));
         }
+        // Use full visible width so corners are always covered,
+        // even when only a top/bottom strip but not left/right strips are drawn.
         if (visible.top() < pageRect.top())
         {
-            painter->drawRect(QRectF(pageRect.left(), visible.top(), pageRect.width(), pageRect.top() - visible.top()));
+            painter->drawRect(QRectF(visible.left(), visible.top(),
+                                     visible.width(), pageRect.top() - visible.top()));
         }
         if (visible.bottom() > pageRect.bottom())
         {
-            painter->drawRect(QRectF(pageRect.left(), pageRect.bottom(), pageRect.width(), visible.bottom() - pageRect.bottom()));
+            painter->drawRect(QRectF(visible.left(), pageRect.bottom(),
+                                     visible.width(), visible.bottom() - pageRect.bottom()));
         }
 
         painter->restore();
