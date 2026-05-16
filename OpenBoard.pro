@@ -143,7 +143,9 @@ win32 {
    }
 
    DEPENDPATH += $$THIRD_PARTY_PATH/quazip/
+   # QuaZip headers may be flat (quazip/) or in a subdir (quazip/quazip/) — add both
    INCLUDEPATH += $$THIRD_PARTY_PATH/quazip/
+   INCLUDEPATH += $$THIRD_PARTY_PATH/quazip/quazip/
    exists($$THIRD_PARTY_PATH/quazip/quazip.pri) {
       include($$THIRD_PARTY_PATH/quazip/quazip.pri)
    }
