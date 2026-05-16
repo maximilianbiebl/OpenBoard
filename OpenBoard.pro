@@ -130,17 +130,13 @@ win32 {
    POPPLER_PATH = $$THIRD_PARTY_PATH/poppler
    exists($$POPPLER_PATH/include) {
       INCLUDEPATH += $$POPPLER_PATH/include
-   } else {
-      warning("Poppler headers not found at $$POPPLER_PATH/include")
-      warning("Download a pre-built poppler package into ../OpenBoard-ThirdParty/poppler/")
    }
-   exists($$POPPLER_PATH/lib/poppler.lib) {
-      LIBS += -L$$POPPLER_PATH/lib -lpoppler -lpoppler-cpp
-   } else: exists($$POPPLER_PATH/lib) {
-      LIBS += -L$$POPPLER_PATH/lib -lpoppler -lpoppler-cpp
-   } else {
-      warning("Poppler import libs not found at $$POPPLER_PATH/lib")
+   exists($$POPPLER_PATH/lib) {
+      LIBS += -L$$POPPLER_PATH/lib
    }
+   # Always link poppler — the linker finds it either from the -L above
+   # or from vcpkg via 'vcpkg integrate install' / LIB env var.
+   LIBS += -lpoppler -lpoppler-cpp
 
    DEPENDPATH += $$THIRD_PARTY_PATH/quazip/
    # QuaZip headers may be flat (quazip/) or in a subdir (quazip/quazip/) — add both
@@ -189,10 +185,9 @@ win32 {
    system(echo "$$SVN_VERSION" > $$BUILD_DIR/svnversion)
 
    DEFINES += NOMINMAX # avoids compilation error in qdatetime.h
-   # The oschwartz10612 pre-built Poppler for Windows reports a high version number
-   # in poppler-version.h but ships pre-22.03 style API headers (raw GooString*,
-   # SplashOutputDev with reverseVideo param). Force the compatible code paths.
-   DEFINES += OPENBOARD_POPPLER_OLD_API
+   # Use the version guards in XPDFRenderer.cpp/.h to select the correct Poppler API.
+   # Do NOT define OPENBOARD_POPPLER_OLD_API here — the vcpkg-installed Poppler lib
+   # exports new API only; the old-API code paths cause LNK2019 against it.
 
 
    # Windows doesn't support file versions with more than 4 fields, so
