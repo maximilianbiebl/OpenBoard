@@ -126,17 +126,22 @@ win32 {
 
    # Poppler: explicit Windows config pointing at ThirdParty structure.
    # Expected layout: ../OpenBoard-ThirdParty/poppler/{include,lib,bin}
-   # If libs.pri already provides poppler this is a no-op (duplicate -l is safe).
    POPPLER_PATH = $$THIRD_PARTY_PATH/poppler
    exists($$POPPLER_PATH/include) {
       INCLUDEPATH += $$POPPLER_PATH/include
    }
-   exists($$POPPLER_PATH/lib) {
-      LIBS += -L$$POPPLER_PATH/lib
+   # Use explicit full-path lib references so the ThirdParty libs (oschwartz10612)
+   # take precedence over any vcpkg-installed poppler that may have a different ABI.
+   exists($$POPPLER_PATH/lib/poppler.lib) {
+      LIBS += $$POPPLER_PATH/lib/poppler.lib
+   } else {
+      LIBS += -lpoppler
    }
-   # Always link poppler — the linker finds it either from the -L above
-   # or from vcpkg via 'vcpkg integrate install' / LIB env var.
-   LIBS += -lpoppler -lpoppler-cpp
+   exists($$POPPLER_PATH/lib/poppler-cpp.lib) {
+      LIBS += $$POPPLER_PATH/lib/poppler-cpp.lib
+   } else {
+      LIBS += -lpoppler-cpp
+   }
 
    DEPENDPATH += $$THIRD_PARTY_PATH/quazip/
    # QuaZip headers may be flat (quazip/) or in a subdir (quazip/quazip/) — add both
