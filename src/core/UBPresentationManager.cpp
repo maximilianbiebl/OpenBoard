@@ -137,7 +137,7 @@ void UBPresentationManager::swapPresenterAndAudienceScreens()
 
     // ── Move the presenter (main) window to the old audience screen ──
     QScreen* newPresenterScreen = screens.at(audienceIdx);
-    mPresenterWindow->create(); // ensure native handle exists
+    mPresenterWindow->winId(); // ensure native handle exists (winId() is public, create() is not)
     if (QWindow* h = mPresenterWindow->windowHandle())
     {
         if (mPresenterWindow->isFullScreen())
@@ -496,7 +496,7 @@ void UBPresentationManager::applyAudienceScreenSelection()
         return;
 
     // Ensure the native window handle exists (required for QWindow::setScreen).
-    mAudienceWindow->create();
+    mAudienceWindow->winId();
 
     if (QWindow* handle = mAudienceWindow->windowHandle())
     {
