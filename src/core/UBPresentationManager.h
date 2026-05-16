@@ -85,7 +85,6 @@ private:
     QCheckBox*   mFreezeAudienceToggle{nullptr};
     QComboBox*   mAudienceScreenSelector{nullptr};
     QPushButton* mSwapScreensButton{nullptr};
-    QPushButton* mExtendDisplayButton{nullptr};
     QPushButton* mPreviousPageButton{nullptr};
     QPushButton* mNextPageButton{nullptr};
     QPushButton* mAudiencePreviewButton{nullptr};

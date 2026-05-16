@@ -300,6 +300,12 @@ void UBAudienceWindow::buildToolbar()
                     { QSignalBlocker b(mZoomAction);  mZoomAction->setChecked(true);  }
             });
 
+    // Zoom buttons — always available regardless of tool state.
+    mToolbar->addSeparator();
+    mZoomOutAction = mToolbar->addAction(tr("−  Zoom"), this, &UBAudienceWindow::zoomOut);
+    mFitPageAction = mToolbar->addAction(tr("⊡  Fit"),  this, &UBAudienceWindow::fitPage);
+    mZoomInAction  = mToolbar->addAction(tr("+  Zoom"), this, &UBAudienceWindow::zoomIn);
+
     // Bottom edge — less intrusive during the presentation.
     addToolBar(Qt::BottomToolBarArea, mToolbar);
 }

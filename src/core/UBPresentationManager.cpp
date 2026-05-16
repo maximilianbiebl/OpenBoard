@@ -12,6 +12,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QTimer>
 #include <QComboBox>
 #include <QDockWidget>
 #include <QFrame>
@@ -241,20 +242,13 @@ void UBPresentationManager::createPresenterControls()
         btnRow->setSpacing(4);
 
         mSwapScreensButton = new QPushButton(tr("⇄ Swap"));
-        mSwapScreensButton->setToolTip(
-            tr("Swap presenter and audience screens"));
-
-        mExtendDisplayButton = new QPushButton(tr("⊞ Extend"));
-        mExtendDisplayButton->setToolTip(
-            tr("Switch OS display mode to Extended (like a second monitor).\n"
-               "Equivalent to Win+P → Extend on Windows."));
+        mSwapScreensButton->setToolTip(tr("Swap presenter and audience screens"));
 
         mAudiencePreviewButton = new QPushButton(tr("↗ Front"));
         mAudiencePreviewButton->setEnabled(false);
         mAudiencePreviewButton->setToolTip(tr("Bring audience window to the front"));
 
         btnRow->addWidget(mSwapScreensButton);
-        btnRow->addWidget(mExtendDisplayButton);
         btnRow->addWidget(mAudiencePreviewButton);
         gl->addLayout(btnRow);
 
@@ -441,19 +435,6 @@ void UBPresentationManager::connectPresenterControls()
     connect(mSwapScreensButton, &QPushButton::clicked,
             this, &UBPresentationManager::swapPresenterAndAudienceScreens);
 
-    connect(mExtendDisplayButton, &QPushButton::clicked, this, [] {
-#if defined(Q_OS_WIN)
-        // DisplaySwitch.exe /extend is the standard Windows way to enable
-        // extended display mode (same as Win+P → Extend).
-        QProcess::startDetached(QStringLiteral("DisplaySwitch.exe"),
-                                {QStringLiteral("/extend")});
-#else
-        // On Linux/macOS the user must configure display mode in system
-        // settings — there is no portable CLI equivalent.
-        Q_UNUSED(0);
-#endif
-    });
-
     connect(mZoomInButton, &QPushButton::clicked, this, [this] {
         if (mAudienceWindow && mRunning) mAudienceWindow->zoomIn();
     });
@@ -573,6 +554,21 @@ void UBPresentationManager::applyRunningState()
 
     if (mRunning)
     {
+#if defined(Q_OS_WIN)
+        // If only one screen is visible the displays are likely mirrored or
+        // the second monitor is off.  Ask Windows to switch to Extended mode
+        // (same as Win+P → Extend), then re-apply the screen placement once
+        // Windows has finished reconfiguring (typically within 3 s).
+        if (mDisplayManager && mDisplayManager->availableScreens().size() < 2)
+        {
+            QProcess::startDetached(QStringLiteral("DisplaySwitch.exe"),
+                                    {QStringLiteral("/extend")});
+            QTimer::singleShot(3000, this, [this] {
+                refreshAudienceScreenSelector();
+                if (mRunning) applyAudienceScreenSelection();
+            });
+        }
+#endif
         // The display manager's existing display view must be hidden so the
         // audience window is the only thing on the second screen.
         if (mDisplayView)
