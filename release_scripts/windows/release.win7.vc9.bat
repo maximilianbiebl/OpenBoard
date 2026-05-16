@@ -31,6 +31,7 @@ if "%OPENBOARD_VCVARS%"=="" if exist "%ProgramFiles(x86)%\Microsoft Visual Studi
 )
 if exist "%OPENBOARD_VCVARS%" call "%OPENBOARD_VCVARS%"
 set BUILD_DIR=%PROJECT_ROOT%\build\win32\release
+set INSTALLER_DIR=%BUILD_DIR%\installer
 set LRELEASE=%QT_BIN%\lrelease.exe
 set BASE_QT_TRANSLATIONS_DIRECTORY=%QT_DIR%\translations
 
@@ -51,7 +52,7 @@ echo %PATH%
 cd %PROJECT_ROOT%
 
 rmdir /S /Q %BUILD_DIR%
-rmdir /S /Q install
+rmdir /S /Q %INSTALLER_DIR%
 
 "%QT_BIN%\qmake.exe" %APPLICATION_NAME%.pro
 
@@ -95,5 +96,6 @@ GOTO EOF
 
 :END
 echo "%APPLICATION_NAME% build finished"
+echo "Installer output: %INSTALLER_DIR%"
 
 :EOF

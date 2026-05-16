@@ -31,6 +31,7 @@ if "%OPENBOARD_VCVARS%"=="" if exist "%ProgramFiles(x86)%\Microsoft Visual Studi
 )
 if exist "%OPENBOARD_VCVARS%" call "%OPENBOARD_VCVARS%"
 set BUILD_DIR=%PROJECT_ROOT%\build\win32\release
+set INSTALLER_DIR=%BUILD_DIR%\installer
 set LRELEASE=%QT_BIN%\lrelease.exe
 set BASE_QT_TRANSLATIONS_DIRECTORY=%QT_DIR%\translations
 
@@ -62,5 +63,6 @@ GOTO END
 
 :END
 echo "%APPLICATION_NAME% setup created"
+echo "Installer output: %INSTALLER_DIR%"
 
 :EOF

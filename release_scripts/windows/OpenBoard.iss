@@ -25,7 +25,7 @@ DefaultGroupName=OpenBoard
 
 #define ProjectRoot GetEnv('PROJECT_ROOT')
 
-OutputDir={#ProjectRoot}\install\win32\
+OutputDir={#ProjectRoot}\build\win32\release\installer\
 OutputBaseFilename=OpenBoard
 SetupIconFile={#ProjectRoot}\resources\win\OpenBoard.ico
 Compression=lzma

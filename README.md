@@ -36,7 +36,7 @@ The Windows release scripts can generate an installer (`.exe`) using Inno Setup 
 4. Build the installer:
    - `release_scripts\windows\release.win7.vc9.bat`
    - If the build output already exists, you can run `release_scripts\windows\create-setup.bat` to only package it.
-5. The installer is written to `install/win32/OpenBoard_Installer_<version>.exe`.
+5. The installer is written to `build/win32/release/installer/OpenBoard_Installer_<version>.exe`.
 
 Notes:
 - The batch scripts default to Qt 6.6.3 but work with other Qt 6.x versions (including 6.7.3) as long as `QT_DIR`/`QT_BIN` point to that Qt installation.
