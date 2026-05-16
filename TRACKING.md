@@ -63,10 +63,12 @@ Solange der Installer nicht buildbar ist, kann keine Feature-Entwicklung verifiz
 ### 1.3 UBAudienceWindow
 - [x] Klasse angelegt (`src/gui/UBAudienceWindow.h/.cpp`)
 - [x] Eigenes `QMainWindow` (Fullscreen, FramelessWindowHint)
-- [x] `UBBoardView` als Central Widget
+- [x] Eigene `UBBoardView` als Central Widget (nicht mDisplayView gestohlen)
+- [x] `setAudienceMode(true)` + `setAudienceToolState()` auf eigener View gesetzt
 - [x] Audience-Toolbar mit Pen/Move/Shape/Zoom-Actions
 - [x] `syncFromToolState()` reagiert auf `UBAudienceToolState::changed()`
 - [x] Toolbar kann per Presenter ein-/ausgeblendet werden
+- [x] Verbindung zu `activeSceneChanged` für automatisches Seiten-Tracking
 - [x] In `gui.pri` und `src/gui/CMakeLists.txt` registriert
 
 ### 1.4 UBBoardView – Audience-Render-Mode
@@ -98,11 +100,11 @@ Solange der Installer nicht buildbar ist, kann keine Feature-Entwicklung verifiz
 ### 2.2 Follow-Mode (Sync-Viewport)
 - [x] `shouldSyncAudienceViewport()` gibt `mRunning && mFollowMode` zurück
 - [x] `resetAudienceFocus()` zentriert Audience auf aktuelle Seite
-- [ ] Integration in Zoom/Pan-Event des Presenter-Views (Viewport-Sync bei Scroll/Zoom)
+- [x] Integration in Zoom/Pan-Event des Presenter-Views (Viewport-Sync via controlViewportChanged)
 - [ ] Test: Audience folgt Presenter-Zoom
 
 ### 2.3 Free-Mode
-- [ ] Audience-View erlaubt eigenständiges Zoomen/Pannen wenn Follow-Mode aus
+- [x] Audience-View erlaubt eigenständiges Zoomen/Pannen wenn Follow-Mode aus (UBBoardView mit setInteractive(true))
 - [ ] Presenter kann Audience jederzeit via Reset zurücksetzen
 - [ ] Test: Audience zoomt unabhängig, Presenter-Reset setzt zurück
 
@@ -201,7 +203,7 @@ Solange der Installer nicht buildbar ist, kann keine Feature-Entwicklung verifiz
 | P1 | Poppler auf Windows muss aus ThirdParty-Repo kommen, kein automatisches Setup | HOCH | In Bearbeitung |
 | P2 | QuaZip muss manuell vor-kompiliert werden | HOCH | Dokumentiert |
 | P3 | `release.win7.vc9.bat` hatte kaputten xcopy-Aufruf | HOCH | Gefixt |
-| P4 | Viewer-Sync bei Zoom/Pan noch nicht implementiert (Follow-Mode nur bei Seitenwechsel) | MITTEL | Offen |
+| P4 | Viewer-Sync bei Zoom/Pan: via controlViewportChanged-Signal implementiert | MITTEL | Gefixt |
 | P5 | Audience-Toolbar hat keine Icons, nur Text | NIEDRIG | Offen |
 | P6 | Free-Mode ermöglicht noch kein eigenständiges Zoomen/Pannen der Audience | MITTEL | Offen |
 
