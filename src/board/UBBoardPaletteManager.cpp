@@ -246,19 +246,6 @@ void UBBoardPaletteManager::setupPalettes()
 
     mStylusPalette->stackUnder(mZoomPalette);
 
-    // Move the zoom palette to the right end of the main toolbar so it appears
-    // directly next to the toolbar rather than floating over the canvas.
-    // Deferred so the presentation manager can add its doc-title label first.
-    QTimer::singleShot(0, [this] {
-        if (!mZoomPalette)
-            return;
-        auto* toolbar = UBApplication::mainWindow ? UBApplication::mainWindow->boardToolBar : nullptr;
-        if (!toolbar)
-            return;
-        // Remove the palette from the canvas layout by reparenting it to the toolbar.
-        toolbar->addWidget(mZoomPalette);
-    });
-
     mTipPalette = new UBStartupHintsPalette(mContainer);
     QList<QAction*> backgroundsActions;
 
@@ -544,14 +531,9 @@ void UBBoardPaletteManager::containerResized()
 
     if(mZoomPalette)
     {
-        // Only position the zoom palette when it is still a canvas child.
-        // Once it has been moved to the boardToolBar, the toolbar layout manages it.
-        if (mZoomPalette->parentWidget() == mContainer)
-        {
-            mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(),
-                               userTop + userHeight - innerMargin - mZoomPalette->height());
-            mZoomPalette->adjustSizeAndPosition();
-        }
+        mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(),
+                           userTop + userHeight - innerMargin - mZoomPalette->height());
+        mZoomPalette->adjustSizeAndPosition();
         mZoomPalette->refreshPalette();
     }
 

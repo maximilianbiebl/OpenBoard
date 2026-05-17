@@ -30,8 +30,6 @@
 #include "UBLeftPalette.h"
 #include "core/UBSettings.h"
 
-#include <QMouseEvent>
-
 #include "core/memcheck.h"
 
 /**
@@ -102,49 +100,6 @@ void UBLeftPalette::resizeEvent(QResizeEvent *event)
         UBSettings::settings()->leftLibPaletteDesktopModeIsCollapsed->set(newWidth == 0);
     }
     UBDockPalette::resizeEvent(event);
-}
-
-
-void UBLeftPalette::mousePressEvent(QMouseEvent* event)
-{
-    if (event->button() == Qt::LeftButton && isOnRightEdge(event->pos()))
-    {
-        mEdgeDragging = true;
-        mEdgeDragStartX = event->globalPosition().toPoint().x();
-        mEdgeDragStartWidth = width();
-        event->accept();
-        return;
-    }
-    UBDockPalette::mousePressEvent(event);
-}
-
-void UBLeftPalette::mouseReleaseEvent(QMouseEvent* event)
-{
-    if (mEdgeDragging)
-    {
-        mEdgeDragging = false;
-        unsetCursor();
-        event->accept();
-        return;
-    }
-    UBDockPalette::mouseReleaseEvent(event);
-}
-
-void UBLeftPalette::mouseMoveEvent(QMouseEvent* event)
-{
-    if (mEdgeDragging)
-    {
-        int delta = event->globalPosition().toPoint().x() - mEdgeDragStartX;
-        int newWidth = qBound(mCollapseWidth, mEdgeDragStartWidth + delta, maximumWidth());
-        resize(newWidth, height());
-        event->accept();
-        return;
-    }
-    if (isOnRightEdge(event->pos()))
-        setCursor(Qt::SizeHorCursor);
-    else if (!mCanResize)
-        unsetCursor();
-    UBDockPalette::mouseMoveEvent(event);
 }
 
 bool UBLeftPalette::switchMode(eUBDockPaletteWidgetMode mode)

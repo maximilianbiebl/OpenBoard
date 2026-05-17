@@ -13,6 +13,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QList>
 
 class UBApplicationController;
 class UBBoardController;
@@ -27,6 +28,8 @@ class QLabel;
 class QPushButton;
 class QComboBox;
 class QStackedWidget;
+class QBoxLayout;
+class QEvent;
 
 class UBPresentationManager : public QObject
 {
@@ -56,6 +59,7 @@ public slots:
     void swapPresenterAndAudienceScreens();
 
 private:
+    bool eventFilter(QObject* watched, QEvent* event) override;
     void createPresenterControls();
     void connectPresenterControls();
     void refreshAudienceScreenSelector();
@@ -65,6 +69,7 @@ private:
     void updateAudienceViewFrame();
     void updateStartStopStyle();
     void movePresenterToNonAudienceScreen(int audienceScreenIdx);
+    void applyPanelWidth(int w);
 
     QPointer<UBApplicationController> mAppController;
     QPointer<UBBoardController>       mBoardController;
@@ -114,6 +119,14 @@ private:
     bool mRunning{false};
     bool mFollowMode{false};   // off by default — presenter decides when to lock
     bool mAudienceFrozen{false};
+
+    // Adaptive layout — updated in applyPanelWidth()
+    QList<QBoxLayout*> mAdaptiveLayouts;   // HBox layouts that flip to VBox when narrow
+    QList<QPushButton*> mAdaptiveBtns;
+    QList<QString>      mAdaptiveBtnFull;  // text in wide mode
+    QList<QString>      mAdaptiveBtnShort; // symbol-only in narrow mode
+    bool                mPanelNarrow{false};
+    bool                mPanelIconOnly{false};
 };
 
 #endif

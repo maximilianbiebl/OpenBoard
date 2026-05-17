@@ -11,10 +11,12 @@
 #include "UBPresentationManager.h"
 
 #include <QApplication>
+#include <QBoxLayout>
 #include <QCheckBox>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPixmap>
+#include <QResizeEvent>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QComboBox>
@@ -364,16 +366,26 @@ void UBPresentationManager::createPresenterControls()
         auto* btnRow = new QHBoxLayout();
         btnRow->setSpacing(4);
 
-        mSwapScreensButton = new QPushButton(tr("⇄ Swap"));
+        mSwapScreensButton = new QPushButton(tr("⇄  Swap"));
         mSwapScreensButton->setToolTip(tr("Swap presenter and audience screens"));
 
-        mAudiencePreviewButton = new QPushButton(tr("↗ Front"));
+        mAudiencePreviewButton = new QPushButton(tr("↗  Front"));
         mAudiencePreviewButton->setEnabled(false);
         mAudiencePreviewButton->setToolTip(tr("Bring audience window to the front"));
+
+        for (auto* b : {mSwapScreensButton, mAudiencePreviewButton})
+        {
+            b->setMinimumHeight(32);
+            b->setMinimumWidth(32);
+        }
 
         btnRow->addWidget(mSwapScreensButton);
         btnRow->addWidget(mAudiencePreviewButton);
         gl->addLayout(btnRow);
+        mAdaptiveLayouts << btnRow;
+        mAdaptiveBtns      << mSwapScreensButton  << mAudiencePreviewButton;
+        mAdaptiveBtnFull   << tr("⇄  Swap")        << tr("↗  Front");
+        mAdaptiveBtnShort  << tr("⇄")              << tr("↗");
 
         rootLayout->addWidget(g);
     }
@@ -388,23 +400,34 @@ void UBPresentationManager::createPresenterControls()
         mFollowModeToggle->setToolTip(
             tr("When enabled, the audience view follows the presenter's zoom and pan,\n"
                "clamped to the page (the audience never sees backstage content)."));
-        mFollowModeToggle->setChecked(false); // off by default
+        mFollowModeToggle->setChecked(false);
         gl->addWidget(mFollowModeToggle);
 
-        mResetFocusButton = new QPushButton(tr("↺ Reset to Full Page"));
+        mResetFocusButton = new QPushButton(tr("↺  Reset to Full Page"));
         mResetFocusButton->setToolTip(tr("Snap the audience view back to the full page"));
+        mResetFocusButton->setMinimumHeight(32);
+        mResetFocusButton->setMinimumWidth(32);
         gl->addWidget(mResetFocusButton);
+        mAdaptiveBtns     << mResetFocusButton;
+        mAdaptiveBtnFull  << tr("↺  Reset to Full Page");
+        mAdaptiveBtnShort << tr("↺");
 
-        // Presenter-side zoom controls for the audience screen
         auto* zoomRow = new QHBoxLayout();
         zoomRow->setSpacing(4);
         mZoomOutButton = new QPushButton(tr("−  Zoom Out"));
         mZoomInButton  = new QPushButton(tr("+  Zoom In"));
         for (auto* b : {mZoomOutButton, mZoomInButton})
-            b->setMinimumHeight(28);
+        {
+            b->setMinimumHeight(32);
+            b->setMinimumWidth(32);
+        }
         zoomRow->addWidget(mZoomOutButton);
         zoomRow->addWidget(mZoomInButton);
         gl->addLayout(zoomRow);
+        mAdaptiveLayouts << zoomRow;
+        mAdaptiveBtns      << mZoomOutButton   << mZoomInButton;
+        mAdaptiveBtnFull   << tr("−  Zoom Out") << tr("+  Zoom In");
+        mAdaptiveBtnShort  << tr("−")           << tr("+");
 
         rootLayout->addWidget(g);
     }
@@ -412,23 +435,29 @@ void UBPresentationManager::createPresenterControls()
     // ── Page navigation ───────────────────────────────────────────────────
     {
         auto* g = makeGroup(tr("Page Navigation"));
-        auto* gl = new QHBoxLayout(g);
-        gl->setSpacing(6);
+        auto* pageRow = new QHBoxLayout(g);
+        pageRow->setSpacing(6);
 
-        mPreviousPageButton = new QPushButton(tr("◀ Previous"));
-        mNextPageButton     = new QPushButton(tr("Next ▶"));
+        mPreviousPageButton = new QPushButton(tr("◀  Previous"));
+        mNextPageButton     = new QPushButton(tr("Next  ▶"));
 
+        const QString navStyle =
+            "QPushButton { border: 1px solid #aaa; border-radius: 6px; padding: 4px; }"
+            "QPushButton:hover { background: #e8e8e8; }"
+            "QPushButton:pressed { background: #d0d0d0; }";
         for (auto* b : {mPreviousPageButton, mNextPageButton})
         {
             b->setMinimumHeight(32);
-            b->setStyleSheet(
-                "QPushButton { border: 1px solid #aaa; border-radius: 6px; padding: 4px; }"
-                "QPushButton:hover { background: #e8e8e8; }"
-                "QPushButton:pressed { background: #d0d0d0; }");
+            b->setMinimumWidth(32);
+            b->setStyleSheet(navStyle);
         }
 
-        gl->addWidget(mPreviousPageButton);
-        gl->addWidget(mNextPageButton);
+        pageRow->addWidget(mPreviousPageButton);
+        pageRow->addWidget(mNextPageButton);
+        mAdaptiveLayouts << pageRow;
+        mAdaptiveBtns      << mPreviousPageButton << mNextPageButton;
+        mAdaptiveBtnFull   << tr("◀  Previous")   << tr("Next  ▶");
+        mAdaptiveBtnShort  << tr("◀")              << tr("▶");
         rootLayout->addWidget(g);
     }
 
@@ -484,22 +513,28 @@ void UBPresentationManager::createPresenterControls()
     // ── Page background ───────────────────────────────────────────────────
     {
         auto* g = makeGroup(tr("Page Background"));
-        auto* gl = new QHBoxLayout(g);
-        gl->setSpacing(4);
+        auto* bgOuter = new QVBoxLayout(g);
+        bgOuter->setSpacing(4);
 
-        mBgPlainButton   = new QPushButton(tr("Blank"));
-        mBgRuledButton   = new QPushButton(tr("Lines"));
-        mBgCrossedButton = new QPushButton(tr("Grid"));
-        mBgDottedButton  = new QPushButton(tr("Dots"));
+        mBgPlainButton   = new QPushButton(tr("□  Blank"));
+        mBgRuledButton   = new QPushButton(tr("≡  Lines"));
+        mBgCrossedButton = new QPushButton(tr("⊞  Grid"));
+        mBgDottedButton  = new QPushButton(tr("⋯  Dots"));
 
         auto* bgRow1 = new QHBoxLayout();
         auto* bgRow2 = new QHBoxLayout();
+        bgRow1->setSpacing(4);
+        bgRow2->setSpacing(4);
         for (auto* b : {mBgPlainButton, mBgRuledButton})
-        { b->setMinimumHeight(28); bgRow1->addWidget(b); }
+        { b->setMinimumHeight(32); b->setMinimumWidth(32); bgRow1->addWidget(b); }
         for (auto* b : {mBgCrossedButton, mBgDottedButton})
-        { b->setMinimumHeight(28); bgRow2->addWidget(b); }
-        gl->addLayout(bgRow1);
-        gl->addLayout(bgRow2);
+        { b->setMinimumHeight(32); b->setMinimumWidth(32); bgRow2->addWidget(b); }
+        bgOuter->addLayout(bgRow1);
+        bgOuter->addLayout(bgRow2);
+        mAdaptiveLayouts << bgRow1 << bgRow2;
+        mAdaptiveBtns      << mBgPlainButton  << mBgRuledButton  << mBgCrossedButton  << mBgDottedButton;
+        mAdaptiveBtnFull   << tr("□  Blank")  << tr("≡  Lines")  << tr("⊞  Grid")     << tr("⋯  Dots");
+        mAdaptiveBtnShort  << tr("□")         << tr("≡")         << tr("⊞")            << tr("⋯");
         rootLayout->addWidget(g);
     }
 
@@ -512,6 +547,9 @@ void UBPresentationManager::createPresenterControls()
         "  border-radius: 5px; padding: 4px 8px; font-size: 11px; }"
         "QPushButton:hover { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }");
     rootLayout->addWidget(mQuitButton);
+
+    // Watch the content widget for resize events → drive adaptive layout
+    root->installEventFilter(this);
 
     mPresenterPanel->setWidget(root);
     mPresenterWindow->addDockWidget(Qt::RightDockWidgetArea, mPresenterPanel);
@@ -647,13 +685,15 @@ void UBPresentationManager::connectPresenterControls()
         }
         else
         {
-            // Expand: restore title bar, then show content.
-            mPresenterPanel->setMaximumWidth(QWIDGETSIZE_MAX);
-            mPresenterWindow->resizeDocks({mPresenterPanel}, {mPresenterPanelLastWidth}, Qt::Horizontal);
-            if (mPresenterPanelTitleStack)
-                mPresenterPanelTitleStack->setCurrentIndex(0);
+            // Expand: restore content first so Qt knows the minimum size,
+            // then remove the max-width cap and resize the dock.
             content->setMinimumWidth(220);
             content->show();
+            if (mPresenterPanelTitleStack)
+                mPresenterPanelTitleStack->setCurrentIndex(0);
+            mPresenterPanel->setMaximumWidth(QWIDGETSIZE_MAX);
+            int restoreWidth = qMax(mPresenterPanelLastWidth, 260);
+            mPresenterWindow->resizeDocks({mPresenterPanel}, {restoreWidth}, Qt::Horizontal);
         }
         mPresenterPanelCollapsed = !mPresenterPanelCollapsed;
     };
@@ -973,6 +1013,65 @@ void UBPresentationManager::updateAudienceViewFrame()
 
     if (UBBoardView* controlView = mBoardController->controlView())
         mAudienceWindow->syncViewport(controlView);
+}
+
+// ---------------------------------------------------------------------------
+// Private: adaptive panel layout
+// ---------------------------------------------------------------------------
+
+bool UBPresentationManager::eventFilter(QObject* watched, QEvent* event)
+{
+    if (event->type() == QEvent::Resize && mPresenterPanel)
+    {
+        if (QWidget* content = mPresenterPanel->widget())
+        {
+            if (watched == content)
+            {
+                applyPanelWidth(static_cast<QResizeEvent*>(event)->size().width());
+            }
+        }
+    }
+    return QObject::eventFilter(watched, event);
+}
+
+void UBPresentationManager::applyPanelWidth(int w)
+{
+    // Three modes based on available width:
+    //   wide  (>= 200 px): side-by-side buttons, full text
+    //   narrow (120..199 px): buttons stacked vertically, full text
+    //   icon   (<  120 px): buttons stacked vertically, symbol only (tooltip shows full text)
+    const bool wantNarrow   = (w < 200);
+    const bool wantIconOnly = (w < 120);
+
+    if (wantNarrow == mPanelNarrow && wantIconOnly == mPanelIconOnly)
+        return;
+
+    mPanelNarrow   = wantNarrow;
+    mPanelIconOnly = wantIconOnly;
+
+    // Flip all tracked HBoxLayouts to vertical or back to horizontal.
+    const QBoxLayout::Direction dir = wantNarrow
+        ? QBoxLayout::TopToBottom
+        : QBoxLayout::LeftToRight;
+    for (QBoxLayout* lay : mAdaptiveLayouts)
+        lay->setDirection(dir);
+
+    // Update button text (full text ↔ symbol only).
+    for (int i = 0; i < mAdaptiveBtns.size(); ++i)
+    {
+        QPushButton* btn = mAdaptiveBtns.at(i);
+        if (!btn) continue;
+        if (wantIconOnly)
+        {
+            btn->setToolTip(mAdaptiveBtnFull.at(i));  // full text as tooltip
+            btn->setText(mAdaptiveBtnShort.at(i));
+        }
+        else
+        {
+            btn->setToolTip(QString());
+            btn->setText(mAdaptiveBtnFull.at(i));
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -46,16 +46,6 @@ public slots:
 protected:
     void updateMaxWidth();
     void resizeEvent(QResizeEvent *event) override;
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
-
-private:
-    static constexpr int kGripWidth = 8;
-    bool mEdgeDragging{false};
-    int  mEdgeDragStartX{0};
-    int  mEdgeDragStartWidth{0};
-    bool isOnRightEdge(const QPoint& pos) const { return pos.x() >= width() - kGripWidth; }
 };
 
 #endif // UBLEFTPALETTE_H

@@ -527,6 +527,9 @@ void UBDockPalette::moveTabs()
     mHTab = y;
 
     mTabPalette->move(x,y + mTabPalette->mVerticalOffset);
+    // Ensure the tab strip is always the topmost sibling so the canvas does
+    // not intercept clicks that should resize the dock palette.
+    mTabPalette->raise();
 }
 void UBDockPalette::resizeTabs()
 {
