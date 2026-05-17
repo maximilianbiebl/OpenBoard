@@ -65,6 +65,7 @@
 #include "desktop/UBDesktopAnnotationController.h"
 #endif
 
+#include "domain/UBGraphicsScene.h"
 #include "domain/UBGraphicsTextItem.h"
 #include "domain/UBGraphicsPixmapItem.h"
 #include "domain/UBGraphicsWidgetItem.h"
@@ -1282,6 +1283,18 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
             event->accept ();
             break;
 
+        case UBStylusTool::Rectangle:
+        case UBStylusTool::Ellipse:
+            scene()->deselectAllItems();
+            if (!mRubberBand)
+                mRubberBand = new UBRubberBand(QRubberBand::Rectangle, this);
+            mRubberBand->setGeometry(QRect(mMouseDownPos, QSize()));
+            mRubberBand->show();
+            mIsCreatingShape    = true;
+            mShapeIsEllipse     = (currentTool == UBStylusTool::Ellipse);
+            event->accept();
+            break;
+
         default:
             if (UBDrawingController::drawingController()->activeRuler() == nullptr) {
                 viewport()->setCursor (QCursor (Qt::BlankCursor));
@@ -1516,8 +1529,10 @@ void UBBoardView::mouseMoveEvent (QMouseEvent *event)
     } break;
 
     case UBStylusTool::Text :
-    case UBStylusTool::Capture : {
-        if (mRubberBand && (mIsCreatingTextZone || mIsCreatingSceneGrabZone)) {
+    case UBStylusTool::Capture :
+    case UBStylusTool::Rectangle :
+    case UBStylusTool::Ellipse : {
+        if (mRubberBand && (mIsCreatingTextZone || mIsCreatingSceneGrabZone || mIsCreatingShape)) {
             mRubberBand->setGeometry(QRect(mMouseDownPos, event->pos()).normalized());
             event->accept();
         }
@@ -1793,6 +1808,25 @@ void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
             }
         }
         QGraphicsView::mouseReleaseEvent (event);
+    }
+    else if (currentTool == UBStylusTool::Rectangle || currentTool == UBStylusTool::Ellipse)
+    {
+        if (mIsCreatingShape && scene() && mRubberBand
+                && mRubberBand->geometry().width()  > 4
+                && mRubberBand->geometry().height() > 4)
+        {
+            QRect viewRect = mRubberBand->geometry();
+            QRectF sceneRect(mapToScene(viewRect.topLeft()),
+                             mapToScene(viewRect.bottomRight()));
+
+            auto* dc = UBDrawingController::drawingController();
+            QColor color    = dc->currentToolColor();
+            qreal lineWidth = dc->currentToolWidth();
+
+            scene()->addShape(sceneRect, mShapeIsEllipse, color, lineWidth);
+            event->accept();
+        }
+        mIsCreatingShape = false;
     }
     else if (currentTool == UBStylusTool::Capture)
     {
@@ -2403,7 +2437,11 @@ void UBBoardView::setToolCursor (int tool)
         controlViewport->setCursor (UBResources::resources ()->textCursor);
         break;
     case UBStylusTool::Capture:
-        controlViewport->setCursor (UBResources::resources ()->penCursor);
+        controlViewport->setCursor(UBResources::resources()->penCursor);
+        break;
+    case UBStylusTool::Rectangle:
+    case UBStylusTool::Ellipse:
+        controlViewport->setCursor(Qt::CrossCursor);
         break;
     default:
         Q_ASSERT (false);

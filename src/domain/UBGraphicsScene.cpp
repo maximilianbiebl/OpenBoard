@@ -1885,6 +1885,84 @@ UBGraphicsSvgItem* UBGraphicsScene::addSvg(const QUrl& pSvgFileUrl, const QPoint
     return svgItem;
 }
 
+UBGraphicsSvgItem* UBGraphicsScene::addShape(const QRectF& sceneRect, bool isEllipse,
+                                              const QColor& color, qreal lineWidth)
+{
+    if (sceneRect.width() < 2.0 || sceneRect.height() < 2.0)
+        return nullptr;
+
+    qreal sw = qMax(1.0, lineWidth);
+    qreal hw = sw / 2.0;
+    QString colorStr = color.name();
+
+    QString svgStr;
+    if (isEllipse)
+    {
+        qreal cx = sceneRect.width()  / 2.0;
+        qreal cy = sceneRect.height() / 2.0;
+        qreal rx = qMax(1.0, cx - hw);
+        qreal ry = qMax(1.0, cy - hw);
+        svgStr = QString(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='%1' height='%2' viewBox='0 0 %1 %2'>"
+            "<ellipse cx='%3' cy='%4' rx='%5' ry='%6' "
+            "stroke='%7' stroke-width='%8' fill='none'/>"
+            "</svg>")
+            .arg(sceneRect.width(),  0, 'f', 2)
+            .arg(sceneRect.height(), 0, 'f', 2)
+            .arg(cx, 0, 'f', 2).arg(cy, 0, 'f', 2)
+            .arg(rx, 0, 'f', 2).arg(ry, 0, 'f', 2)
+            .arg(colorStr).arg(sw, 0, 'f', 2);
+    }
+    else
+    {
+        qreal rw = qMax(1.0, sceneRect.width()  - sw);
+        qreal rh = qMax(1.0, sceneRect.height() - sw);
+        svgStr = QString(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='%1' height='%2' viewBox='0 0 %1 %2'>"
+            "<rect x='%3' y='%3' width='%4' height='%5' "
+            "stroke='%6' stroke-width='%7' fill='none'/>"
+            "</svg>")
+            .arg(sceneRect.width(),  0, 'f', 2)
+            .arg(sceneRect.height(), 0, 'f', 2)
+            .arg(hw, 0, 'f', 2)
+            .arg(rw, 0, 'f', 2).arg(rh, 0, 'f', 2)
+            .arg(colorStr).arg(sw, 0, 'f', 2);
+    }
+
+    QByteArray svgData = svgStr.toUtf8();
+    auto* item = new UBGraphicsSvgItem(svgData);
+    item->setFlag(QGraphicsItem::ItemIsMovable,    true);
+    item->setFlag(QGraphicsItem::ItemIsSelectable, true);
+    item->setPos(sceneRect.topLeft());
+
+    addItem(item);
+
+    if (mUndoRedoStackEnabled)
+    {
+        auto* uc = new UBGraphicsItemUndoCommand(shared_from_this(), nullptr, item);
+        UBApplication::undoStack->push(uc);
+    }
+
+    setDocumentUpdated();
+
+    // Save SVG bytes to disk so the SVG adaptor can reload it.
+    auto doc = UBApplication::boardController->selectedDocument();
+    if (doc && !doc->persistencePath().isEmpty())
+    {
+        QString imgDir  = doc->persistencePath() + "/" + UBPersistenceManager::imageDirectory;
+        QString svgPath = imgDir + "/" + item->uuid().toString() + ".svg";
+        QDir().mkpath(imgDir);
+        QFile f(svgPath);
+        if (f.open(QIODevice::WriteOnly))
+        {
+            f.write(svgData);
+            f.close();
+        }
+    }
+
+    return item;
+}
+
 UBGraphicsTextItem* UBGraphicsScene::addText(const QString& pString, const QPointF& pTopLeft)
 {
     return addTextWithFont(pString, pTopLeft, UBSettings::settings()->fontPixelSize()

@@ -74,7 +74,9 @@ struct UBStylusTool
         Pointer,
         Line,
         Text,
-        Capture
+        Capture,
+        Rectangle,
+        Ellipse
     };
 };
 

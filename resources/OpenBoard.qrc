@@ -143,6 +143,10 @@
         <file>images/stylusPalette/penOn.png</file>
         <file>images/stylusPalette/line.png</file>
         <file>images/stylusPalette/lineOn.png</file>
+        <file>images/stylusPalette/rectangle.svg</file>
+        <file>images/stylusPalette/rectangleOn.svg</file>
+        <file>images/stylusPalette/ellipse.svg</file>
+        <file>images/stylusPalette/ellipseOn.svg</file>
         <file>images/stylusPalette/zoomOut.png</file>
         <file>images/stylusPalette/zoomOutOn.png</file>
         <file>images/stylusPalette/zoomIn.png</file>

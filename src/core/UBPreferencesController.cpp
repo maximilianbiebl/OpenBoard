@@ -47,6 +47,11 @@
 #include "podcast/UBPodcastController.h"
 
 #include "ui_preferences.h"
+#include "UBShortcutManager.h"
+
+#include <QTableView>
+#include <QHeaderView>
+#include <QVBoxLayout>
 
 #include "core/memcheck.h"
 
@@ -350,6 +355,31 @@ void UBPreferencesController::init()
     mMarkerProperties->pressureSensitiveCheckBox->setChecked(settings->boardMarkerPressureSensitive->get().toBool());
 
     mMarkerProperties->opacitySlider->setValue(settings->boardMarkerAlpha->get().toDouble() * 100);
+
+    // ── Keyboard Shortcuts tab (added programmatically) ───────────────────
+    // Only add once — wire() is called from the constructor, so this runs once.
+    if (mPreferencesUI->mainTabWidget->tabText(mPreferencesUI->mainTabWidget->count() - 1) != tr("Shortcuts"))
+    {
+        auto* shortcutsTab = new QWidget();
+        auto* vl = new QVBoxLayout(shortcutsTab);
+        vl->setContentsMargins(4, 4, 4, 4);
+
+        auto* view = new QTableView(shortcutsTab);
+        view->setModel(UBShortcutManager::shortcutManager());
+        view->setSelectionBehavior(QAbstractItemView::SelectRows);
+        view->setSelectionMode(QAbstractItemView::SingleSelection);
+        view->horizontalHeader()->setStretchLastSection(false);
+        view->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+        view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+        view->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+        view->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+        view->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+        view->setAlternatingRowColors(true);
+        view->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
+        vl->addWidget(view);
+
+        mPreferencesUI->mainTabWidget->addTab(shortcutsTab, tr("Shortcuts"));
+    }
 
 }
 

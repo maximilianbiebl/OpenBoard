@@ -1585,6 +1585,44 @@
     <string>Ctrl+J</string>
    </property>
   </action>
+  <action name="actionRectangle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/stylusPalette/rectangle.svg</normaloff>
+     <normalon>:/images/stylusPalette/rectangleOn.svg</normalon>:/images/stylusPalette/rectangle.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Rectangle</string>
+   </property>
+   <property name="toolTip">
+    <string>Draw Rectangle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionEllipse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/stylusPalette/ellipse.svg</normaloff>
+     <normalon>:/images/stylusPalette/ellipseOn.svg</normalon>:/images/stylusPalette/ellipse.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Ellipse</string>
+   </property>
+   <property name="toolTip">
+    <string>Draw Ellipse / Circle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
+  </action>
   <action name="actionText">
    <property name="checkable">
     <bool>true</bool>

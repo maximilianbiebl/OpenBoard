@@ -161,6 +161,8 @@ void UBShortcutManager::addMainActions(UBMainWindow *mainWindow)
 
                    mainWindow->actionPointer,
                    mainWindow->actionLine,
+                   mainWindow->actionRectangle,
+                   mainWindow->actionEllipse,
                    mainWindow->actionText,
                    mainWindow->actionCapture
                }, mainWindow);

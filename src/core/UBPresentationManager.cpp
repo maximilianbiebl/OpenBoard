@@ -408,6 +408,7 @@ void UBPresentationManager::createPresenterControls()
 
     mPresenterPanel->setWidget(root);
     mPresenterWindow->addDockWidget(Qt::RightDockWidgetArea, mPresenterPanel);
+    mPresenterWindow->resizeDocks({mPresenterPanel}, {260}, Qt::Horizontal);
 }
 
 void UBPresentationManager::updateStartStopStyle()

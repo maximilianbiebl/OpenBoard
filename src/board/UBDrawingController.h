@@ -112,6 +112,8 @@ class UBDrawingController : public QObject
         void lineToolSelected(bool checked);
         void textToolSelected(bool checked);
         void captureToolSelected(bool checked);
+        void rectangleToolSelected(bool checked);
+        void ellipseToolSelected(bool checked);
 };
 
 #endif /* UBDRAWINGCONTROLLER_H_ */

@@ -175,6 +175,8 @@ private:
     QRubberBand *mRubberBand;
     bool mIsCreatingTextZone;
     bool mIsCreatingSceneGrabZone;
+    bool mIsCreatingShape{false};
+    bool mShapeIsEllipse{false};
 
     bool isAbsurdPoint(QPoint point);
 

@@ -53,6 +53,15 @@ MSVC C++20 handles this correctly as long as all elements have the same type.
 | `UBAudienceToolState` | `src/core/UBAudienceToolState.*` | Per-tool enable flags, gated by presenter |
 | `UBBoardView` | `src/board/UBBoardView.*` | Shared canvas view; `setAudienceMode(true)` for audience |
 
+### Shape drawing tools (Rectangle / Ellipse)
+- `UBStylusTool::Rectangle` (12) and `UBStylusTool::Ellipse` (13) added to `UB.h`.
+- Rubber-band draw in `UBBoardView`: `mIsCreatingShape` / `mShapeIsEllipse` flags track state.
+- On mouse release → `UBGraphicsScene::addShape(sceneRect, isEllipse, color, lineWidth)`.
+- `addShape()` creates a `UBGraphicsSvgItem` from inline SVG and saves the SVG to `images/UUID.svg` for persistence.
+- Actions: `actionRectangle` (Ctrl+R), `actionEllipse` (Ctrl+E) in mainWindow.ui.
+- Cursor: `Qt::CrossCursor` for both tools.
+- `setToolCursor()` in UBBoardView **must** have explicit cases for Rectangle and Ellipse — it has `Q_ASSERT(false)` in default.
+
 ### Page naming
 - Names stored in `toc.json` via `UBDocumentToc::pageName/setPageName`.
 - `UBBoardController::pageName/setPageName` is the public entry point.
