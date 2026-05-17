@@ -348,7 +348,7 @@ void UBAudienceWindow::onActiveSceneChanged()
         return;
 
     auto scene = mBoardController->activeScene();
-    if (mOwnView->scene() != scene.get())
+    if (mOwnView->scene().get() != scene.get())
         mOwnView->setScene(scene.get());
 
     // Re-fit immediately so the new page fills the window.
