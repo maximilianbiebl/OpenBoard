@@ -26,6 +26,7 @@ class QCheckBox;
 class QLabel;
 class QPushButton;
 class QComboBox;
+class QStackedWidget;
 
 class UBPresentationManager : public QObject
 {

@@ -953,8 +953,8 @@ void UBPresentationManager::applyAudienceToolState()
         {
             // After unfreeze: force the view to re-render all scene changes that
             // occurred during the frozen period.
-            if (auto scene = v->scene())
-                scene->update();          // mark whole scene as dirty
+            // Use QGraphicsView::invalidateScene() via the base class to avoid
+            // needing the full UBGraphicsScene definition in this translation unit.
             v->update(v->rect());         // queue repaint of the view
             v->viewport()->repaint();     // synchronous repaint so it happens immediately
             mAudienceWindow->fitPage();
