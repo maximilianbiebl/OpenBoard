@@ -96,10 +96,6 @@ void UBThumbnailTextItem::computeText()
 void UBThumbnailTextItem::setEditMode(bool editing)
 {
     mIsEditing = editing;
-    if (editing)
-        document()->setPageColor(Qt::white);
-    else
-        document()->setPageColor(Qt::transparent);
     update();
 }
 
