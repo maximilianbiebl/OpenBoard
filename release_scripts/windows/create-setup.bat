@@ -23,6 +23,7 @@ set PROJECT_ROOT=%CD%
 popd
 
 set APPLICATION_NAME=BoardPresenter
+set PRO_FILE=OpenBoard
 if "%QT_DIR%"=="" set QT_DIR=C:\Qt\6.6.3\msvc2022_64
 if "%QT_BIN%"=="" set QT_BIN=%QT_DIR%\bin
 if "%INNO_EXE%"=="" (
@@ -56,7 +57,7 @@ if not exist "%INNO_EXE%" (
     GOTO EXIT_WITH_ERROR
 )
 
-call "%INNO_EXE%" "%SCRIPT_PATH%\%APPLICATION_NAME%.iss" /F"%APPLICATION_NAME%_Installer_%VERSION%"
+call "%INNO_EXE%" "%SCRIPT_PATH%\%PRO_FILE%.iss" /F"%APPLICATION_NAME%_Installer_%VERSION%"
 
 :EXIT_WITH_ERROR
 echo "Error found"

@@ -22,6 +22,7 @@ set PROJECT_ROOT=%CD%
 popd
 
 set APPLICATION_NAME=BoardPresenter
+set PRO_FILE=OpenBoard
 if "%QT_DIR%"=="" set QT_DIR=C:\Qt\6.6.3\msvc2022_64
 if "%QT_BIN%"=="" set QT_BIN=%QT_DIR%\bin
 if "%INNO_EXE%"=="" (
@@ -74,14 +75,14 @@ if exist %BUILD_DIR%\rcc rmdir /S /Q %BUILD_DIR%\rcc
 if exist %BUILD_DIR%\ui rmdir /S /Q %BUILD_DIR%\ui
 
 echo === Running qmake ===
-"%QT_BIN%\qmake.exe" %APPLICATION_NAME%.pro CONFIG+=release
+"%QT_BIN%\qmake.exe" %PRO_FILE%.pro CONFIG+=release
 IF ERRORLEVEL 1 (
     echo ERROR: qmake failed
     GOTO EXIT_WITH_ERROR
 )
 
 echo === Running lrelease ===
-call "%LRELEASE%" "%APPLICATION_NAME%.pro"
+call "%LRELEASE%" "%PRO_FILE%.pro"
 IF ERRORLEVEL 1 (
     echo WARNING: lrelease failed - translations may be missing
 )
@@ -167,7 +168,7 @@ if not exist "%INNO_EXE%" (
 
 echo === Building installer ===
 set PROJECT_ROOT=%PROJECT_ROOT%
-call "%INNO_EXE%" "%SCRIPT_PATH%\%APPLICATION_NAME%.iss" /F"%APPLICATION_NAME%_Installer_%VERSION%"
+call "%INNO_EXE%" "%SCRIPT_PATH%\%PRO_FILE%.iss" /F"%APPLICATION_NAME%_Installer_%VERSION%"
 IF ERRORLEVEL 1 (
     echo ERROR: Inno Setup failed
     GOTO EXIT_WITH_ERROR
