@@ -1256,7 +1256,11 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
             break;
 
         case UBStylusTool::Text : {
-            if (dynamic_cast<UBGraphicsTextItem*>(getMovingItem()))
+            QGraphicsItem* mi = getMovingItem();
+            // Forward to scene when clicking an existing text item or any delegate
+            // control (font/color/size buttons rendered as scene items).
+            if (dynamic_cast<UBGraphicsTextItem*>(mi)
+                    || (mi && mi->type() == UBGraphicsItemType::DelegateButtonType))
             {
                 mIsCreatingTextZone = false;
                 // Keep Text tool active — don't auto-switch to Selector.
