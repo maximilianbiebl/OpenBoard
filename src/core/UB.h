@@ -227,7 +227,8 @@ enum UBPageBackground
 {
     plain = 0,
     crossed,
-    ruled
+    ruled,
+    dotted
 };
 
 /*

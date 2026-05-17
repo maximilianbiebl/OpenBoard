@@ -1114,6 +1114,26 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
         return;
     }
 
+    // Page-border resize: left-button drag near the right or bottom border.
+    if (event->button() == Qt::LeftButton && !mAudienceMode && bIsControl)
+    {
+        PageResizeEdge edge = detectPageResizeEdge(event->pos());
+        if (edge != PageResizeEdge::None)
+        {
+            auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+            if (currentScene)
+            {
+                mPageResizeEdge      = edge;
+                mIsResizingPage      = true;
+                mPageResizeStartScene = mapToScene(event->pos());
+                mPageResizeStartSize  = currentScene->nominalSize();
+                applyPageResizeCursor(edge);
+                event->accept();
+                return;
+            }
+        }
+    }
+
     // Middle mouse button → pan the presenter view (not available in audience mode).
     if (event->button() == Qt::MiddleButton && !mAudienceMode && (bIsControl || bIsDesktop))
     {
@@ -1310,6 +1330,44 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
 
 void UBBoardView::mouseMoveEvent (QMouseEvent *event)
 {
+    // Page-border resize drag.
+    if (mIsResizingPage && (event->buttons() & Qt::LeftButton) && !mAudienceMode)
+    {
+        auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+        if (currentScene)
+        {
+            QPointF scenePt = mapToScene(event->pos());
+            QPointF delta = scenePt - mPageResizeStartScene;
+
+            int newW = mPageResizeStartSize.width();
+            int newH = mPageResizeStartSize.height();
+
+            if (mPageResizeEdge == PageResizeEdge::Right || mPageResizeEdge == PageResizeEdge::BottomRight)
+                newW = qMax(200, mPageResizeStartSize.width() + qRound(delta.x() * 2));
+            if (mPageResizeEdge == PageResizeEdge::Bottom || mPageResizeEdge == PageResizeEdge::BottomRight)
+                newH = qMax(200, mPageResizeStartSize.height() + qRound(delta.y() * 2));
+
+            const QSize proposedSize(newW, newH);
+            if (proposedSize != currentScene->nominalSize())
+                currentScene->setNominalSize(proposedSize);
+        }
+        applyPageResizeCursor(mPageResizeEdge);
+        event->accept();
+        return;
+    }
+
+    // Update resize cursor when hovering near the border (not dragging).
+    if (!mIsResizingPage && !mMouseButtonIsPressed && !mAudienceMode && bIsControl)
+    {
+        PageResizeEdge edge = detectPageResizeEdge(event->pos());
+        if (edge != PageResizeEdge::None)
+        {
+            applyPageResizeCursor(edge);
+            event->accept();
+            return;
+        }
+    }
+
     // Middle mouse button → pan the view.
     if (mMiddleButtonIsPressed && (event->buttons() & Qt::MiddleButton) && !mAudienceMode)
     {
@@ -1487,6 +1545,27 @@ void UBBoardView::movingItemDestroyed(QObject*)
 
 void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
 {
+    // Commit page resize.
+    if (event->button() == Qt::LeftButton && mIsResizingPage)
+    {
+        mIsResizingPage = false;
+        auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+        if (currentScene && mController)
+        {
+            QSize finalSize = currentScene->nominalSize();
+            if (finalSize != mPageResizeStartSize)
+            {
+                // Restore old size first so the undo command captures the correct delta.
+                currentScene->setNominalSize(mPageResizeStartSize);
+                mController->setPageSize(finalSize);
+            }
+        }
+        mPageResizeEdge = PageResizeEdge::None;
+        setToolCursor(UBDrawingController::drawingController()->stylusTool());
+        event->accept();
+        return;
+    }
+
     if (event->button() == Qt::MiddleButton && mMiddleButtonIsPressed)
     {
         mMiddleButtonIsPressed = false;
@@ -1897,6 +1976,10 @@ void UBBoardView::leaveEvent (QEvent * event)
 
     mJustSelectedItems.clear();
 
+    // Reset resize cursor when leaving the view.
+    if (!mAudienceMode && bIsControl && !mIsResizingPage)
+        setToolCursor(UBDrawingController::drawingController()->stylusTool());
+
     QGraphicsView::leaveEvent (event);
 }
 
@@ -2212,6 +2295,53 @@ bool UBBoardView::audiencePointInPage(const QPointF& point) const
     }
 
     return audiencePageRect().contains(point);
+}
+
+// ---------------------------------------------------------------------------
+// Page-border resize helpers (presenter/control view only)
+// ---------------------------------------------------------------------------
+
+UBBoardView::PageResizeEdge UBBoardView::detectPageResizeEdge(const QPoint& viewPos) const
+{
+    if (mAudienceMode || !bIsControl)
+        return PageResizeEdge::None;
+
+    auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+    if (!currentScene)
+        return PageResizeEdge::None;
+
+    const QSize sz = currentScene->nominalSize();
+    if (sz.isEmpty())
+        return PageResizeEdge::None;
+
+    // Page border in view coordinates — use the half-size corner points.
+    QPoint brView = mapFromScene(QPointF(sz.width() / 2.0, sz.height() / 2.0));
+
+    // Detection threshold: 12 view pixels from the border line.
+    const int T = 12;
+
+    bool nearRight  = qAbs(viewPos.x() - brView.x()) <= T && viewPos.y() < brView.y() + T;
+    bool nearBottom = qAbs(viewPos.y() - brView.y()) <= T && viewPos.x() < brView.x() + T;
+
+    if (nearRight && nearBottom)
+        return PageResizeEdge::BottomRight;
+    if (nearRight)
+        return PageResizeEdge::Right;
+    if (nearBottom)
+        return PageResizeEdge::Bottom;
+
+    return PageResizeEdge::None;
+}
+
+void UBBoardView::applyPageResizeCursor(PageResizeEdge edge)
+{
+    switch (edge)
+    {
+        case PageResizeEdge::Right:       viewport()->setCursor(Qt::SizeHorCursor); break;
+        case PageResizeEdge::Bottom:      viewport()->setCursor(Qt::SizeVerCursor); break;
+        case PageResizeEdge::BottomRight: viewport()->setCursor(Qt::SizeFDiagCursor); break;
+        default:                          break;
+    }
 }
 
 void UBBoardView::virtualKeyboardActivated(bool b)

@@ -96,10 +96,11 @@ private:
 
     QLabel*      mDocumentNameLabel{nullptr};
 
-    // Background buttons (plain / ruled / crossed)
+    // Background buttons (plain / ruled / crossed / dotted)
     QPushButton* mBgPlainButton{nullptr};
     QPushButton* mBgRuledButton{nullptr};
     QPushButton* mBgCrossedButton{nullptr};
+    QPushButton* mBgDottedButton{nullptr};
 
     bool mRunning{false};
     bool mFollowMode{false};   // off by default — presenter decides when to lock

@@ -2522,7 +2522,7 @@ QPointF UBGraphicsScene::snap(const QPointF& point, double* force, std::optional
     snapPoint.setY(point.y() - floorY < gridSize / 2. ? floorY : floorY + gridSize);
 
     // for blank background, use same snapping as for grid
-    if (mPageBackground == UBPageBackground::crossed || mPageBackground == UBPageBackground::plain)
+    if (mPageBackground == UBPageBackground::crossed || mPageBackground == UBPageBackground::plain || mPageBackground == UBPageBackground::dotted)
     {
         // x axis
         double floorX = std::floor(point.x () / gridSize) * gridSize;
@@ -3053,6 +3053,28 @@ void UBGraphicsScene::drawBackground(QPainter *painter, const QRectF &rect)
                     }
                 }
             }
+        }
+
+        else if (mPageBackground == UBPageBackground::dotted)
+        {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(bgCrossColor);
+
+            qreal dotRadius = qMax(1.5, gridSize * 0.06);
+
+            qreal firstY = ((int) (rect.y () / gridSize)) * gridSize;
+            qreal firstX = ((int) (rect.x () / gridSize)) * gridSize;
+
+            for (qreal yPos = firstY; yPos < rect.y () + rect.height (); yPos += gridSize)
+            {
+                for (qreal xPos = firstX; xPos < rect.x () + rect.width (); xPos += gridSize)
+                {
+                    painter->drawEllipse(QPointF(xPos, yPos), dotRadius, dotRadius);
+                }
+            }
+
+            painter->setPen(bgCrossColor);
+            painter->setBrush(Qt::NoBrush);
         }
     }
 }

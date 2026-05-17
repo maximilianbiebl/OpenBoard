@@ -383,13 +383,16 @@ void UBPresentationManager::createPresenterControls()
         mBgPlainButton   = new QPushButton(tr("Blank"));
         mBgRuledButton   = new QPushButton(tr("Lines"));
         mBgCrossedButton = new QPushButton(tr("Grid"));
+        mBgDottedButton  = new QPushButton(tr("Dots"));
 
-        for (auto* b : {mBgPlainButton, mBgRuledButton, mBgCrossedButton})
-            b->setMinimumHeight(28);
-
-        gl->addWidget(mBgPlainButton);
-        gl->addWidget(mBgRuledButton);
-        gl->addWidget(mBgCrossedButton);
+        auto* bgRow1 = new QHBoxLayout();
+        auto* bgRow2 = new QHBoxLayout();
+        for (auto* b : {mBgPlainButton, mBgRuledButton})
+        { b->setMinimumHeight(28); bgRow1->addWidget(b); }
+        for (auto* b : {mBgCrossedButton, mBgDottedButton})
+        { b->setMinimumHeight(28); bgRow2->addWidget(b); }
+        gl->addLayout(bgRow1);
+        gl->addLayout(bgRow2);
         rootLayout->addWidget(g);
     }
 
@@ -505,6 +508,9 @@ void UBPresentationManager::connectPresenterControls()
     });
     connect(mBgCrossedButton, &QPushButton::clicked, this, [this] {
         if (mBoardController) mBoardController->changeBackground(false, UBPageBackground::crossed);
+    });
+    connect(mBgDottedButton, &QPushButton::clicked, this, [this] {
+        if (mBoardController) mBoardController->changeBackground(false, UBPageBackground::dotted);
     });
 
     connect(mQuitButton, &QPushButton::clicked, this, [] {

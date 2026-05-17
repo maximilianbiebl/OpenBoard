@@ -158,6 +158,16 @@ private:
     bool mMiddleButtonIsPressed{false};
     QPointF mMiddleButtonPressPos;
 
+    // Page-border resize state
+    enum class PageResizeEdge { None, Right, Bottom, BottomRight };
+    PageResizeEdge mPageResizeEdge{PageResizeEdge::None};
+    bool mIsResizingPage{false};
+    QPointF mPageResizeStartScene;   // scene pos at press
+    QSize   mPageResizeStartSize;    // nominal size at press
+
+    PageResizeEdge detectPageResizeEdge(const QPoint& viewPos) const;
+    void applyPageResizeCursor(PageResizeEdge edge);
+
     bool mPenPressureSensitive;
     bool mMarkerPressureSensitive;
     bool mUseHighResTabletEvent;
