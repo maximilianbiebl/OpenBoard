@@ -171,6 +171,10 @@ void UBPresentationManager::swapPresenterAndAudienceScreens()
     // ── Reposition the audience window if a presentation is running ─
     if (mRunning)
         applyAudienceScreenSelection();
+
+    // Always bring the presenter window back to front after the swap.
+    if (mPresenterWindow)
+        mPresenterWindow->activateWindow();
 }
 
 void UBPresentationManager::resetAudienceFocus()
@@ -527,8 +531,14 @@ void UBPresentationManager::connectPresenterControls()
             mPresenterWindow->setWindowTitle(docName.isEmpty() ? "BoardPresenter" : docName + " \xe2\x80\x94 BoardPresenter");
         };
         connect(mBoardController, &UBBoardController::activeSceneChanged, this, updateDocName);
-        connect(mBoardController, &UBDocumentContainer::documentSet, this, [updateDocName](auto){ updateDocName(); });
-        updateDocName();
+        connect(mBoardController, &UBDocumentContainer::documentSet, this, [updateDocName](std::shared_ptr<UBDocumentProxy>){ updateDocName(); });
+        // Defer the initial call so the document has time to load.
+        QTimer::singleShot(500, this, updateDocName);
+        // Safety-net: re-check every second in case signals were missed.
+        auto* titleTimer = new QTimer(this);
+        titleTimer->setInterval(1000);
+        connect(titleTimer, &QTimer::timeout, this, updateDocName);
+        titleTimer->start();
     }
 
     // Sync audience viewport whenever the presenter pans or zooms.
@@ -660,6 +670,10 @@ void UBPresentationManager::applyRunningState()
         // which triggers showEvent() → fitPage() on the audience window.
         applyAudienceScreenSelection();
 
+        // Delayed fitPage as a safety net — showEvent may fire before the window
+        // has settled into its final geometry on the target screen.
+        QTimer::singleShot(200, mAudienceWindow, &UBAudienceWindow::fitPage);
+
         // If follow-mode is active, sync the audience viewport to wherever
         // the presenter is currently looking.
         updateAudienceViewFrame();
@@ -696,6 +710,13 @@ void UBPresentationManager::applyAudienceToolState()
         v->setInteractive(canInteract);
         v->setEnabled(!mAudienceFrozen);
         mAudienceWindow->setUpdatesEnabled(!mAudienceFrozen);
+        if (!mAudienceFrozen)
+        {
+            mAudienceWindow->update();
+            v->update();
+            // Force re-fit so the page content is visible immediately after unfreeze.
+            mAudienceWindow->fitPage();
+        }
     }
 }
 

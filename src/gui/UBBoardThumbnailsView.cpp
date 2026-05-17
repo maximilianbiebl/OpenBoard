@@ -28,7 +28,6 @@
 
 
 #include <QContextMenuEvent>
-#include <QInputDialog>
 #include <QList>
 #include <QMenu>
 #include <QPointF>
@@ -54,6 +53,7 @@
 #include "gui/UBThumbnail.h"
 #include "gui/UBThumbnailArranger.h"
 #include "gui/UBThumbnailScene.h"
+#include "gui/UBThumbnailTextItem.h"
 
 UBBoardThumbnailsView::UBBoardThumbnailsView(QWidget *parent, const char *name)
     : UBThumbnailsView(parent)
@@ -286,17 +286,21 @@ void UBBoardThumbnailsView::mouseDoubleClickEvent(QMouseEvent* event)
     if (!item)
         return;
 
-    int pageIndex = item->sceneIndex();
-    QString current = UBApplication::boardController->pageName(pageIndex);
-    bool ok = false;
-    QString name = QInputDialog::getText(this, tr("Rename Page"),
-                                         tr("Page name (leave empty for default):"),
-                                         QLineEdit::Normal, current, &ok);
-    if (!ok)
+    item->startInlineEdit();
+
+    // When the label text item loses focus, save the new name.
+    // UBThumbnailTextItem is a QGraphicsTextItem (QObject), so we can connect directly.
+    UBThumbnailTextItem* textItem = item->labelItem();
+    if (!textItem)
         return;
 
-    UBApplication::boardController->setPageName(pageIndex, name);
-    item->setPageLabel(name);
+    // Use a single-shot connection so only one save fires per edit session.
+    connect(textItem, &UBThumbnailTextItem::editingFinished, this,
+        [item](const QString& newName) {
+            int pageIndex = item->sceneIndex();
+            UBApplication::boardController->setPageName(pageIndex, newName);
+            item->setPageLabel(newName);
+        }, Qt::SingleShotConnection);
 }
 
 void UBBoardThumbnailsView::contextMenuEvent(QContextMenuEvent* event)
@@ -309,16 +313,16 @@ void UBBoardThumbnailsView::contextMenuEvent(QContextMenuEvent* event)
     QAction* renameAction = menu.addAction(tr("Rename Page..."));
     if (menu.exec(event->globalPos()) == renameAction)
     {
-        int pageIndex = item->sceneIndex();
-        QString current = UBApplication::boardController->pageName(pageIndex);
-        bool ok = false;
-        QString name = QInputDialog::getText(this, tr("Rename Page"),
-                                             tr("Page name (leave empty for default):"),
-                                             QLineEdit::Normal, current, &ok);
-        if (!ok)
+        item->startInlineEdit();
+        UBThumbnailTextItem* textItem = item->labelItem();
+        if (!textItem)
             return;
-        UBApplication::boardController->setPageName(pageIndex, name);
-        item->setPageLabel(name);
+        connect(textItem, &UBThumbnailTextItem::editingFinished, this,
+            [item](const QString& newName) {
+                int pageIndex = item->sceneIndex();
+                UBApplication::boardController->setPageName(pageIndex, newName);
+                item->setPageLabel(newName);
+            }, Qt::SingleShotConnection);
     }
 }
 

@@ -24,6 +24,7 @@
 
 #include <QGraphicsPixmapItem>
 #include <QSvgRenderer>
+#include <QTextCursor>
 
 #include "board/UBDrawingController.h"
 #include "document/UBDocument.h"
@@ -87,6 +88,17 @@ void UBThumbnail::setPageLabel(const QString& name)
 int UBThumbnail::sceneIndex() const
 {
     return mIndex;
+}
+
+void UBThumbnail::startInlineEdit()
+{
+    mTextItem->setTextInteractionFlags(Qt::TextEditorInteraction);
+    mTextItem->setFocus(Qt::MouseFocusReason);
+    mTextItem->document()->clearUndoRedoStacks();
+    // Select all text so the user can immediately type a new name.
+    QTextCursor c = mTextItem->textCursor();
+    c.select(QTextCursor::Document);
+    mTextItem->setTextCursor(c);
 }
 
 void UBThumbnail::setThumbnailSize(QSizeF size)

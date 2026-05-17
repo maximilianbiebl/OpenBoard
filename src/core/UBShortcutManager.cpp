@@ -292,7 +292,7 @@ void UBShortcutManager::addMainActions(UBMainWindow *mainWindow)
     action->setProperty("builtIn", true);
     actions << action;
 
-    addActions(tr("Built-in (not editable)"), actions);
+    addActions(tr("Navigation"), actions);
 
     // load ignoreCtrl setting
     ignoreCtrl(UBSettings::settings()->value("Shortcut/IgnoreCtrl").toBool());
@@ -382,9 +382,9 @@ int UBShortcutManager::columnCount(const QModelIndex &parent) const
 Qt::ItemFlags UBShortcutManager::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags base = QAbstractTableModel::flags(index);
-    // Only data rows (not group headers) in the key-sequence column are editable.
+    // All data rows (not group headers) in the key-sequence column are editable.
     QAction* action = getAction(index);
-    if (action && !action->property("builtIn").toBool() && index.column() == 2)
+    if (action && index.column() == 2)
         return base | Qt::ItemIsEditable;
     return base;
 }
@@ -440,11 +440,11 @@ QVariant UBShortcutManager::data(const QModelIndex &index, int role) const
         QFont disabledFont;
         disabledFont.setItalic(true);
 
-        return action ? (action->property("builtIn").toBool() ? disabledFont : QVariant()) : groupFont;
+        return action ? QVariant() : groupFont;
     }
 
     case UBShortcutManager::ActionRole:
-        return action && !action->property("builtIn").toBool();
+        return action != nullptr;
 
     case UBShortcutManager::GroupHeaderRole:
         return !action;

@@ -73,6 +73,8 @@ private:
     QAction*  mMarkerAction{nullptr};
     QAction*  mMoveAction{nullptr};
     QAction*  mShapeAction{nullptr};
+    QAction*  mRectangleAction{nullptr};
+    QAction*  mEllipseAction{nullptr};
     QAction*  mZoomAction{nullptr};
     QAction*  mLaserAction{nullptr};
     QAction*  mZoomInAction{nullptr};

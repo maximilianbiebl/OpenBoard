@@ -254,47 +254,61 @@ void UBAudienceWindow::buildToolbar()
         return mToolbar->addAction(icon, label);
     };
 
-    mPenAction    = makeToolAction(":images/stylusPalette/pen.png",    ":images/stylusPalette/penOn.png",    tr("Pen"));
-    mMarkerAction = makeToolAction(":images/stylusPalette/marker.png", ":images/stylusPalette/markerOn.png", tr("Marker"));
-    mEraserAction = makeToolAction(":images/stylusPalette/eraser.png", ":images/stylusPalette/eraserOn.png", tr("Eraser"));
-    mMoveAction   = makeToolAction(":images/stylusPalette/arrow.png",  ":images/stylusPalette/arrowOn.png",  tr("Select"));
-    mShapeAction  = makeToolAction(":images/stylusPalette/line.png",   ":images/stylusPalette/lineOn.png",   tr("Shape"));
-    mZoomAction   = makeToolAction(":images/stylusPalette/hand.png",   ":images/stylusPalette/handOn.png",   tr("Pan/Zoom"));
-    mLaserAction  = makeToolAction(":images/stylusPalette/laser.png",  ":images/stylusPalette/laserOn.png",  tr("Laser"));
+    mPenAction       = makeToolAction(":images/stylusPalette/pen.png",          ":images/stylusPalette/penOn.png",          tr("Pen"));
+    mMarkerAction    = makeToolAction(":images/stylusPalette/marker.png",       ":images/stylusPalette/markerOn.png",       tr("Marker"));
+    mEraserAction    = makeToolAction(":images/stylusPalette/eraser.png",       ":images/stylusPalette/eraserOn.png",       tr("Eraser"));
+    mMoveAction      = makeToolAction(":images/stylusPalette/arrow.png",        ":images/stylusPalette/arrowOn.png",        tr("Select"));
+    mShapeAction     = makeToolAction(":images/stylusPalette/line.png",         ":images/stylusPalette/lineOn.png",         tr("Shape"));
+    mRectangleAction = makeToolAction(":images/stylusPalette/rectangle.svg",    ":images/stylusPalette/rectangleOn.svg",    tr("Rect"));
+    mEllipseAction   = makeToolAction(":images/stylusPalette/ellipse.svg",      ":images/stylusPalette/ellipseOn.svg",      tr("Ellipse"));
+    mZoomAction      = makeToolAction(":images/stylusPalette/hand.png",         ":images/stylusPalette/handOn.png",         tr("Pan/Zoom"));
+    mLaserAction     = makeToolAction(":images/stylusPalette/laser.png",        ":images/stylusPalette/laserOn.png",        tr("Laser"));
 
     // Checkable + exclusive so exactly one tool appears active.
     auto* toolGroup = new QActionGroup(this);
     toolGroup->setExclusive(true);
-    for (auto* a : {mPenAction, mMarkerAction, mEraserAction, mMoveAction, mShapeAction, mZoomAction, mLaserAction})
+    for (auto* a : {mPenAction, mMarkerAction, mEraserAction, mMoveAction, mShapeAction, mRectangleAction, mEllipseAction, mZoomAction, mLaserAction})
     {
         a->setCheckable(true);
         toolGroup->addAction(a);
     }
     mPenAction->setChecked(true);
 
-    connect(mPenAction,    &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pen);      });
-    connect(mMarkerAction, &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Marker);    });
-    connect(mEraserAction, &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Eraser);    });
-    connect(mMoveAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);  });
-    connect(mShapeAction,  &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Line);      });
-    connect(mZoomAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Hand);      });
-    connect(mLaserAction,  &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pointer);    });
+    connect(mPenAction,       &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pen);       });
+    connect(mMarkerAction,    &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Marker);     });
+    connect(mEraserAction,    &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Eraser);     });
+    connect(mMoveAction,      &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);   });
+    connect(mShapeAction,     &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Line);       });
+    connect(mRectangleAction, &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Rectangle);  });
+    connect(mEllipseAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Ellipse);    });
+    connect(mZoomAction,      &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Hand);       });
+    connect(mLaserAction,     &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pointer);    });
 
     // Keep toolbar in sync when the global stylus tool changes (e.g. hardware stylus or presenter).
     connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
             this, [this](int tool) {
                 struct { QAction* action; std::initializer_list<int> tools; } map[] = {
-                    { mPenAction,    { UBStylusTool::Pen } },
-                    { mMarkerAction, { UBStylusTool::Marker } },
-                    { mEraserAction, { UBStylusTool::Eraser } },
-                    { mMoveAction,   { UBStylusTool::Selector, UBStylusTool::Play } },
-                    { mShapeAction,  { UBStylusTool::Line } },
-                    { mZoomAction,   { UBStylusTool::Hand, UBStylusTool::ZoomIn, UBStylusTool::ZoomOut } },
-                    { mLaserAction,  { UBStylusTool::Pointer } },
+                    { mPenAction,       { UBStylusTool::Pen } },
+                    { mMarkerAction,    { UBStylusTool::Marker } },
+                    { mEraserAction,    { UBStylusTool::Eraser } },
+                    { mMoveAction,      { UBStylusTool::Selector, UBStylusTool::Play } },
+                    { mShapeAction,     { UBStylusTool::Line } },
+                    { mZoomAction,      { UBStylusTool::Hand, UBStylusTool::ZoomIn, UBStylusTool::ZoomOut } },
+                    { mLaserAction,     { UBStylusTool::Pointer } },
+                    { mRectangleAction, { UBStylusTool::Rectangle } },
+                    { mEllipseAction,   { UBStylusTool::Ellipse } },
                 };
                 for (auto& entry : map)
-                    for (int t : entry.tools)
-                        if (tool == t) { QSignalBlocker b(entry.action); entry.action->setChecked(true); return; }
+                    if (entry.action)
+                        for (int t : entry.tools)
+                            if (tool == t) { QSignalBlocker b(entry.action); entry.action->setChecked(true); return; }
+            });
+
+    // Also update the board view cursor immediately when tool changes.
+    connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
+            this, [this](int tool) {
+                if (mOwnView)
+                    mOwnView->setToolCursor(tool);
             });
 
     // Zoom buttons — always available regardless of tool state.
@@ -333,7 +347,9 @@ void UBAudienceWindow::onActiveSceneChanged()
     if (!mBoardController || !mBoardController->activeScene() || !mOwnView)
         return;
 
-    mOwnView->setScene(mBoardController->activeScene().get());
+    auto scene = mBoardController->activeScene();
+    if (mOwnView->scene() != scene.get())
+        mOwnView->setScene(scene.get());
 
     // Re-fit immediately so the new page fills the window.
     fitPage();
@@ -347,13 +363,15 @@ void UBAudienceWindow::syncFromToolState()
     if (mToolbar)
         mToolbar->setVisible(mToolState->toolbarVisible());
 
-    if (mPenAction)    mPenAction->setEnabled(mToolState->penEnabled());
-    if (mMarkerAction) mMarkerAction->setEnabled(mToolState->penEnabled());
-    if (mEraserAction) mEraserAction->setEnabled(mToolState->penEnabled());
-    if (mMoveAction)   mMoveAction->setEnabled(mToolState->moveEnabled());
-    if (mShapeAction)  mShapeAction->setEnabled(mToolState->shapeEnabled());
-    if (mZoomAction)   mZoomAction->setEnabled(mToolState->zoomEnabled());
-    if (mLaserAction)  mLaserAction->setEnabled(mToolState->zoomEnabled());
+    if (mPenAction)       mPenAction->setEnabled(mToolState->penEnabled());
+    if (mMarkerAction)    mMarkerAction->setEnabled(mToolState->penEnabled());
+    if (mEraserAction)    mEraserAction->setEnabled(mToolState->penEnabled());
+    if (mMoveAction)      mMoveAction->setEnabled(mToolState->moveEnabled());
+    if (mShapeAction)     mShapeAction->setEnabled(mToolState->shapeEnabled());
+    if (mRectangleAction) mRectangleAction->setEnabled(mToolState->shapeEnabled());
+    if (mEllipseAction)   mEllipseAction->setEnabled(mToolState->shapeEnabled());
+    if (mZoomAction)      mZoomAction->setEnabled(mToolState->zoomEnabled());
+    if (mLaserAction)     mLaserAction->setEnabled(mToolState->zoomEnabled());
 
     if (mOwnView)
         mOwnView->setInteractive(mToolState->anyInteractiveToolEnabled());

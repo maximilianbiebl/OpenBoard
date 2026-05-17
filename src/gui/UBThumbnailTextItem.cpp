@@ -22,7 +22,10 @@
 
 #include "UBThumbnailTextItem.h"
 
+#include <QFocusEvent>
 #include <QFontMetricsF>
+#include <QKeyEvent>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <QTextOption>
 
@@ -86,4 +89,30 @@ void UBThumbnailTextItem::computeText()
     QFontMetricsF fm(font());
     QString elidedText = fm.elidedText(mUnelidedText, Qt::ElideLeft, mWidth - 2 * document()->documentMargin() - 1);
     setPlainText(elidedText);
+}
+
+void UBThumbnailTextItem::focusOutEvent(QFocusEvent* event)
+{
+    setTextInteractionFlags(Qt::NoTextInteraction);
+    emit editingFinished(toPlainText());
+    QGraphicsTextItem::focusOutEvent(event);
+}
+
+void UBThumbnailTextItem::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+    {
+        // clearFocus() triggers focusOutEvent → editingFinished
+        clearFocus();
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Escape)
+    {
+        setTextInteractionFlags(Qt::NoTextInteraction);
+        clearFocus();
+        event->accept();
+        return;
+    }
+    QGraphicsTextItem::keyPressEvent(event);
 }

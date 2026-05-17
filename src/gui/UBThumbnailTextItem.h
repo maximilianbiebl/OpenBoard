@@ -42,6 +42,13 @@ public:
     void setText(const QString& text);
     void computeText();
 
+signals:
+    void editingFinished(const QString& text);
+
+protected:
+    void focusOutEvent(QFocusEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
+
 private:
     qreal mWidth{0};
     QString mUnelidedText{};
