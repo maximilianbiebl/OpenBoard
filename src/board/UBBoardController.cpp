@@ -56,6 +56,7 @@
 #include "document/UBDocument.h"
 #include "document/UBDocumentController.h"
 #include "document/UBDocumentProxy.h"
+#include "document/UBDocumentToc.h"
 
 #include "domain/UBGraphicsGroupContainerItem.h"
 #include "domain/UBGraphicsItemUndoCommand.h"
@@ -201,6 +202,27 @@ void UBBoardController::initBackgroundGridSize()
 int UBBoardController::currentPage() const
 {
     return mActiveSceneIndex + 1;
+}
+
+QString UBBoardController::pageName(int index) const
+{
+    auto doc = selectedDocument();
+    if (!doc || doc->persistencePath().isEmpty())
+        return {};
+    UBDocumentToc toc{doc->persistencePath()};
+    toc.load();
+    return toc.pageName(index);
+}
+
+void UBBoardController::setPageName(int index, const QString& name)
+{
+    auto doc = selectedDocument();
+    if (!doc || doc->persistencePath().isEmpty())
+        return;
+    UBDocumentToc toc{doc->persistencePath()};
+    toc.load();
+    toc.setPageName(index, name);
+    toc.save();
 }
 
 void UBBoardController::setupViews()

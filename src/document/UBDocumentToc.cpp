@@ -29,6 +29,7 @@
 static const QString UUID{"uuid"};
 static const QString PAGE_ID{"id"};
 static const QString ASSETS("assets");
+static const QString PAGE_NAME("name");
 
 UBDocumentToc::UBDocumentToc(const QString& documentPath)
     : mDocumentPath{documentPath}
@@ -179,6 +180,25 @@ bool UBDocumentToc::hasAssetsEntry(int index) const
     }
 
     return mToc.at(index).contains(ASSETS);
+}
+
+QString UBDocumentToc::pageName(int index) const
+{
+    if (index < 0 || index >= mToc.count())
+        return {};
+    return mToc.at(index).value(PAGE_NAME).toString();
+}
+
+void UBDocumentToc::setPageName(int index, const QString& name)
+{
+    if (index < 0)
+        return;
+    assureSize(index);
+    if (name.isEmpty())
+        mToc[index].remove(PAGE_NAME);
+    else
+        mToc[index][PAGE_NAME] = name;
+    mModified = true;
 }
 
 bool UBDocumentToc::load()

@@ -41,7 +41,7 @@ BEGIN
 
             VALUE "LegalCopyright",   "(c) Open Education Foundation 2013. All rights reserved\000"
 
-            VALUE "OriginalFilename", "OpenBoard.exe\000"
+            VALUE "OriginalFilename", "BoardPresenter.exe\000"
 
             VALUE "ProductName",      "BoardPresenter\000"
 

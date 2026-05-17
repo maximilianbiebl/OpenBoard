@@ -1,4 +1,4 @@
-TARGET = "OpenBoard"
+TARGET = "BoardPresenter"
 TEMPLATE = app
 
 CONFIG += c++20

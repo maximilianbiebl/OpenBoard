@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define ProjectRoot GetEnv('PROJECT_ROOT')
-#define ApplicationVersion GetVersionNumbersString("{#ProjectRoot}\build\win32\release\product\OpenBoard.exe")
+#define ApplicationVersion GetVersionNumbersString("{#ProjectRoot}\build\win32\release\product\BoardPresenter.exe")
 
 
 [Setup]
@@ -100,40 +100,40 @@ Source: "{#ProjectRoot}\resources\windows\xpdfrc"; DestDir: "{app}"; Flags: igno
 Source: "{#ProjectRoot}\resources\fonts\*"; DestDir: "{app}\fonts"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\OpenBoard"; Filename: "{app}\OpenBoard.exe"
-Name: "{group}\{cm:UninstallProgram,OpenBoard}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\OpenBoard"; Filename: "{app}\OpenBoard.exe"; Tasks: desktopicon
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\OpenBoard"; Filename: "{app}\OpenBoard.exe"; Tasks: quicklaunchicon
+Name: "{group}\BoardPresenter"; Filename: "{app}\BoardPresenter.exe"
+Name: "{group}\{cm:UninstallProgram,BoardPresenter}"; Filename: "{uninstallexe}"
+Name: "{commondesktop}\BoardPresenter"; Filename: "{app}\BoardPresenter.exe"; Tasks: desktopicon
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\BoardPresenter"; Filename: "{app}\BoardPresenter.exe"; Tasks: quicklaunchicon
 
 [Registry]
-Root: HKCR; Subkey: ".ubz"; ValueType: string; ValueName: ""; ValueData: "OpenBoardFile"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "OpenBoardFile"; ValueType: string; ValueName: ""; ValueData: "OpenBoard document"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "OpenBoardFile\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\OpenBoard.exe,1"
-Root: HKCR; Subkey: "OpenBoardFile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\OpenBoard.exe"" ""%1"""
+Root: HKCR; Subkey: ".ubz"; ValueType: string; ValueName: ""; ValueData: "BoardPresenterFile"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "BoardPresenterFile"; ValueType: string; ValueName: ""; ValueData: "BoardPresenter document"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "BoardPresenterFile\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\BoardPresenter.exe,1"
+Root: HKCR; Subkey: "BoardPresenterFile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\BoardPresenter.exe"" ""%1"""
 
-Root: HKLM; Subkey: "SOFTWARE\OpenBoard"; ValueType: string; ValueName: "Client application"; ValueData: "{app}\OpenBoard.exe"; Flags: uninsdeletevalue; Check: isProcessorNotX64
-Root: HKLM; Subkey: "SOFTWARE\OpenBoard"; ValueType: dword; ValueName: "Transfer mode"; ValueData: "0"; Flags: uninsdeletevalue; Check: isProcessorNotX64
-Root: HKLM; Subkey: "SOFTWARE\OpenBoard"; ValueType: dword; ValueName: "EMF: Hide page"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorNotX64
-Root: HKLM; Subkey: "SOFTWARE\OpenBoard\Defaults"; ValueType: dword; ValueName: "PDF: Enabled"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorNotX64
+Root: HKLM; Subkey: "SOFTWARE\BoardPresenter"; ValueType: string; ValueName: "Client application"; ValueData: "{app}\BoardPresenter.exe"; Flags: uninsdeletevalue; Check: isProcessorNotX64
+Root: HKLM; Subkey: "SOFTWARE\BoardPresenter"; ValueType: dword; ValueName: "Transfer mode"; ValueData: "0"; Flags: uninsdeletevalue; Check: isProcessorNotX64
+Root: HKLM; Subkey: "SOFTWARE\BoardPresenter"; ValueType: dword; ValueName: "EMF: Hide page"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorNotX64
+Root: HKLM; Subkey: "SOFTWARE\BoardPresenter\Defaults"; ValueType: dword; ValueName: "PDF: Enabled"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorNotX64
 
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: dword; ValueName: "Policy"; ValueData: "3"; Flags: uninsdeletevalue; Check: isProcessorNotX64
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppName"; ValueData: "OpenBoard.exe"; Flags: uninsdeletevalue; Check: isProcessorNotX64
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppName"; ValueData: "BoardPresenter.exe"; Flags: uninsdeletevalue; Check: isProcessorNotX64
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppPath"; ValueData: "{app}"; Flags: uninsdeletevalue; Check: isProcessorNotX64
 
-Root: HKLM64; Subkey: "SOFTWARE\OpenBoard"; ValueType: string; ValueName: "Client application"; ValueData: "{app}\OpenBoard.exe"; Flags: uninsdeletevalue; Check: isProcessorX64
-Root: HKLM64; Subkey: "SOFTWARE\OpenBoard"; ValueType: dword; ValueName: "Transfer mode"; ValueData: "0"; Flags: uninsdeletevalue; Check: isProcessorX64
-Root: HKLM64; Subkey: "SOFTWARE\OpenBoard"; ValueType: dword; ValueName: "EMF: Hide page"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorX64
-Root: HKLM64; Subkey: "SOFTWARE\OpenBoard\Defaults"; ValueType: dword; ValueName: "PDF: Enabled"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorX64
+Root: HKLM64; Subkey: "SOFTWARE\BoardPresenter"; ValueType: string; ValueName: "Client application"; ValueData: "{app}\BoardPresenter.exe"; Flags: uninsdeletevalue; Check: isProcessorX64
+Root: HKLM64; Subkey: "SOFTWARE\BoardPresenter"; ValueType: dword; ValueName: "Transfer mode"; ValueData: "0"; Flags: uninsdeletevalue; Check: isProcessorX64
+Root: HKLM64; Subkey: "SOFTWARE\BoardPresenter"; ValueType: dword; ValueName: "EMF: Hide page"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorX64
+Root: HKLM64; Subkey: "SOFTWARE\BoardPresenter\Defaults"; ValueType: dword; ValueName: "PDF: Enabled"; ValueData: "1"; Flags: uninsdeletevalue; Check: isProcessorX64
 
 Root: HKLM64; Subkey: "SOFTWARE\Wow6432Node\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: dword; ValueName: "Policy"; ValueData: "3"; Flags: uninsdeletevalue; Check: isProcessorX64
-Root: HKLM64; Subkey: "SOFTWARE\Wow6432Node\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppName"; ValueData: "OpenBoard.exe"; Flags: uninsdeletevalue; Check: isProcessorX64
+Root: HKLM64; Subkey: "SOFTWARE\Wow6432Node\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppName"; ValueData: "BoardPresenter.exe"; Flags: uninsdeletevalue; Check: isProcessorX64
 Root: HKLM64; Subkey: "SOFTWARE\Wow6432Node\Microsoft\Internet Explorer\Low Rights\DragDrop\{{E63D17F8-D9DA-479D-B9B5-0D101A03703B}"; ValueType: string; ValueName: "AppPath"; ValueData: "{app}"; Flags: uninsdeletevalue; Check: isProcessorX64
 
 [Run]
 Filename: "{tmp}\vcredist_2013.x64.exe";WorkingDir:"{tmp}"; Parameters: "/install /quiet /norestart"; StatusMsg: Installing CRT 2013...; Check: FileExists(ExpandConstant('{tmp}\vcredist_2013.x64.exe'))
 Filename: "{tmp}\vcredist_2015_2022.x64.exe";WorkingDir:"{tmp}"; Parameters: "/install /quiet /norestart"; StatusMsg: Installing CRT 2015-2022 ...; Check: FileExists(ExpandConstant('{tmp}\vcredist_2015_2022.x64.exe'))
 Filename: "{tmp}\LAVFilters-0.77.2-Installer.exe";WorkingDir:"{tmp}"; Parameters: "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"; StatusMsg: Installing LAV Filters ...; Check: FileExists(ExpandConstant('{tmp}\LAVFilters-0.77.2-Installer.exe'))
-Filename: "{app}\OpenBoard.exe"; Description: "{cm:LaunchProgram,OpenBoard}"; Flags: nowait postinstall skipifsilent 
+Filename: "{app}\BoardPresenter.exe"; Description: "{cm:LaunchProgram,BoardPresenter}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; cleanup and delete whole installation directory
