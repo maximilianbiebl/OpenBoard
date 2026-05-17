@@ -246,6 +246,11 @@ void UBAudienceWindow::buildToolbar()
         "QToolButton:pressed{ background: rgba(255,255,255,60); }"
         "QToolButton:disabled{ color: rgba(255,255,255,80); }");
 
+    // Left expanding spacer — centres the tool buttons.
+    auto* spacerLeft = new QWidget();
+    spacerLeft->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    mToolbar->addWidget(spacerLeft);
+
     // Tool buttons — icons match the presenter's stylus palette for consistency.
     auto makeToolAction = [this](const QString& off, const QString& on, const QString& label) -> QAction* {
         QIcon icon;
@@ -316,6 +321,11 @@ void UBAudienceWindow::buildToolbar()
     mZoomOutAction = mToolbar->addAction(tr("−  Zoom"), this, &UBAudienceWindow::zoomOut);
     mFitPageAction = mToolbar->addAction(tr("⊡  Fit"),  this, &UBAudienceWindow::fitPage);
     mZoomInAction  = mToolbar->addAction(tr("+  Zoom"), this, &UBAudienceWindow::zoomIn);
+
+    // Right expanding spacer — keeps tool content centred.
+    auto* spacerRight = new QWidget();
+    spacerRight->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    mToolbar->addWidget(spacerRight);
 
     // Bottom edge — less intrusive during the presentation.
     addToolBar(Qt::BottomToolBarArea, mToolbar);

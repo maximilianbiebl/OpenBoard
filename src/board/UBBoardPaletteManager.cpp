@@ -529,8 +529,8 @@ void UBBoardPaletteManager::containerResized()
 
     if(mZoomPalette)
     {
-        mZoomPalette->move(userLeft + userWidth - mZoomPalette->width()
-                , userTop + userHeight /*- mPageNumberPalette->height()*/ - innerMargin - mZoomPalette->height());
+        // Position zoom indicator at top-right, adjacent to the toolbar.
+        mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(), userTop);
         mZoomPalette->adjustSizeAndPosition();
         mZoomPalette->refreshPalette();
     }

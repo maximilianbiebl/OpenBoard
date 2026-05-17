@@ -20,7 +20,6 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QProcess>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
@@ -213,11 +212,45 @@ void UBPresentationManager::createPresenterControls()
     if (!mPresenterWindow)
         return;
 
-    mPresenterPanel = new QDockWidget(tr("Presentation"), mPresenterWindow);
+    mPresenterPanel = new QDockWidget(mPresenterWindow);
     mPresenterPanel->setObjectName("presentationControlPanel");
+    // No default title bar — we provide our own tab-style collapse strip.
     mPresenterPanel->setFeatures(QDockWidget::DockWidgetMovable |
-                                 QDockWidget::DockWidgetFloatable |
-                                 QDockWidget::DockWidgetClosable);
+                                 QDockWidget::DockWidgetFloatable);
+
+    // ── Custom title bar (matches UBDockPalette tab visual) ──────────────
+    {
+        auto* titleBar = new QWidget(mPresenterPanel);
+        titleBar->setMinimumHeight(28);
+        titleBar->setStyleSheet(
+            "QWidget {"
+            "  background: rgba(80,80,80,220);"
+            "  color: white;"
+            "  border-radius: 4px;"
+            "}"
+            "QPushButton {"
+            "  background: transparent; color: white;"
+            "  border: none; font-size: 14px; font-weight: bold;"
+            "  min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;"
+            "}"
+            "QPushButton:hover { background: rgba(255,255,255,40); border-radius: 3px; }");
+
+        auto* hb = new QHBoxLayout(titleBar);
+        hb->setContentsMargins(4, 2, 4, 2);
+        hb->setSpacing(4);
+
+        mPanelCollapseBtn = new QPushButton(tr("◀"), titleBar);
+        mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
+
+        auto* titleLbl = new QLabel(tr("Presentation"), titleBar);
+        titleLbl->setStyleSheet("font-size: 12px; font-weight: bold; color: white; background: transparent;");
+
+        hb->addWidget(mPanelCollapseBtn);
+        hb->addWidget(titleLbl);
+        hb->addStretch();
+
+        mPresenterPanel->setTitleBarWidget(titleBar);
+    }
 
     QWidget* root = new QWidget(mPresenterPanel);
     root->setMinimumWidth(220);
@@ -516,6 +549,36 @@ void UBPresentationManager::connectPresenterControls()
         QApplication::quit();
     });
 
+    // ── Panel collapse / expand ───────────────────────────────────────────
+    if (mPanelCollapseBtn && mPresenterPanel)
+    {
+        connect(mPanelCollapseBtn, &QPushButton::clicked, this, [this] {
+            if (!mPresenterPanel || !mPresenterWindow)
+                return;
+            QWidget* content = mPresenterPanel->widget();
+            if (!content)
+                return;
+            if (!mPresenterPanelCollapsed)
+            {
+                // Collapse: remember width, hide content, shrink dock.
+                mPresenterPanelLastWidth = mPresenterPanel->width();
+                content->hide();
+                mPresenterWindow->resizeDocks({mPresenterPanel}, {28}, Qt::Horizontal);
+                mPanelCollapseBtn->setText(tr("▶"));
+                mPanelCollapseBtn->setToolTip(tr("Expand panel"));
+            }
+            else
+            {
+                // Expand: show content, restore width.
+                content->show();
+                mPresenterWindow->resizeDocks({mPresenterPanel}, {mPresenterPanelLastWidth}, Qt::Horizontal);
+                mPanelCollapseBtn->setText(tr("◀"));
+                mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
+            }
+            mPresenterPanelCollapsed = !mPresenterPanelCollapsed;
+        });
+    }
+
     if (mDisplayManager)
     {
         connect(mDisplayManager, &UBDisplayManager::availableScreenCountChanged,
@@ -609,9 +672,17 @@ void UBPresentationManager::refreshAudienceScreenSelector()
     mAudienceScreenSelector->setCurrentIndex(defaultAudienceIdx);
     mAudienceScreenSelector->setEnabled(!screens.isEmpty());
 
-    const bool multiScreen = screens.size() > 1;
+    // Swap only makes sense when screens have distinct geometries.
+    bool extendedMode = screens.size() > 1;
+    if (extendedMode && screens.size() >= 2)
+    {
+        QRect r0 = screens.at(0) ? screens.at(0)->geometry() : QRect();
+        for (int i = 1; i < screens.size(); ++i)
+            if (screens.at(i) && screens.at(i)->geometry() == r0)
+            { extendedMode = false; break; }
+    }
     if (mSwapScreensButton)
-        mSwapScreensButton->setEnabled(multiScreen);
+        mSwapScreensButton->setEnabled(extendedMode);
 }
 
 // ---------------------------------------------------------------------------
@@ -660,6 +731,14 @@ void UBPresentationManager::applyAudienceScreenSelection()
     {
         UBPlatformUtils::showFullScreen(mAudienceWindow);
         mAudienceWindow->raise();
+        // In duplicate / single-screen mode the audience window and the presenter
+        // window share the same physical display.  Bring the presenter back to
+        // front so it stays accessible.
+        if (mPresenterWindow)
+        {
+            mPresenterWindow->activateWindow();
+            mPresenterWindow->raise();
+        }
     }
     // else: window stays hidden; it will be shown correctly when presentation starts
 }
@@ -675,21 +754,27 @@ void UBPresentationManager::applyRunningState()
 
     if (mRunning)
     {
-#if defined(Q_OS_WIN)
-        // If only one screen is visible the displays are likely mirrored or
-        // the second monitor is off.  Ask Windows to switch to Extended mode
-        // (same as Win+P → Extend), then re-apply the screen placement once
-        // Windows has finished reconfiguring (typically within 3 s).
-        if (mDisplayManager && mDisplayManager->availableScreens().size() < 2)
+        // Detect duplicate / mirror mode: screens share the same geometry.
+        // In this mode we skip screen-separation logic and just show the
+        // audience window on the selected screen without attempting to move
+        // the presenter window to a different display.
+        bool isDuplicateMode = false;
+        if (mDisplayManager)
         {
-            QProcess::startDetached(QStringLiteral("DisplaySwitch.exe"),
-                                    {QStringLiteral("/extend")});
-            QTimer::singleShot(3000, this, [this] {
-                refreshAudienceScreenSelector();
-                if (mRunning) applyAudienceScreenSelection();
-            });
+            const QList<QScreen*> screens = mDisplayManager->availableScreens();
+            if (screens.size() >= 2)
+            {
+                QRect r0 = screens.at(0) ? screens.at(0)->geometry() : QRect();
+                isDuplicateMode = true;
+                for (int i = 1; i < screens.size(); ++i)
+                    if (screens.at(i) && screens.at(i)->geometry() != r0)
+                    { isDuplicateMode = false; break; }
+            }
+            else if (screens.size() < 2)
+            {
+                isDuplicateMode = true;
+            }
         }
-#endif
         // The display manager's existing display view must be hidden so the
         // audience window is the only thing on the second screen.
         // processEvents() forces the hide to take visual effect immediately,
@@ -705,11 +790,10 @@ void UBPresentationManager::applyRunningState()
         // is already in the correct state when it becomes visible.
         applyAudienceToolState();
 
-        // Ensure the selected audience screen is different from the presenter window's screen.
-        // If the user hasn't changed the selector and defaults happen to collide
-        // (e.g. the projector is the OS primary screen so the main window landed there),
-        // auto-correct by picking the first non-presenter screen.
-        if (mPresenterWindow && mAudienceScreenSelector && mDisplayManager)
+        // In extended mode only: ensure audience screen ≠ presenter screen.
+        // Skip this entire block when screens are duplicated/mirrored because
+        // moving windows between identical geometries causes layout chaos.
+        if (!isDuplicateMode && mPresenterWindow && mAudienceScreenSelector && mDisplayManager)
         {
             const QList<QScreen*> screens = mDisplayManager->availableScreens();
             if (screens.size() > 1)
@@ -719,8 +803,6 @@ void UBPresentationManager::applyRunningState()
                 const int audienceIdx  = mAudienceScreenSelector->currentIndex();
                 if (presenterIdx >= 0 && presenterIdx == audienceIdx)
                 {
-                    // Move the presenter window to a different screen automatically.
-                    // The audience selector stays where it is.
                     for (int i = 0; i < screens.size(); ++i)
                     {
                         if (i != audienceIdx)
@@ -734,8 +816,6 @@ void UBPresentationManager::applyRunningState()
         }
 
         // Show the audience window fullscreen on the selected screen.
-        // applyAudienceScreenSelection() calls UBPlatformUtils::showFullScreen()
-        // which triggers showEvent() → fitPage() on the audience window.
         applyAudienceScreenSelection();
 
         // Re-hide the legacy display view to ensure it doesn't compete with the audience window.
@@ -819,6 +899,15 @@ void UBPresentationManager::movePresenterToNonAudienceScreen(int audienceScreenI
 
     const QList<QScreen*> screens = mDisplayManager->availableScreens();
     if (screens.size() < 2)
+        return;
+
+    // Skip if screens are duplicated/mirrored — moving is pointless and disruptive.
+    const QRect r0 = screens.at(0) ? screens.at(0)->geometry() : QRect();
+    bool allSame = true;
+    for (int i = 1; i < screens.size(); ++i)
+        if (screens.at(i) && screens.at(i)->geometry() != r0)
+        { allSame = false; break; }
+    if (allSame)
         return;
 
     // Find first screen that is NOT the audience screen

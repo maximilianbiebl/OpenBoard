@@ -2407,7 +2407,9 @@ void UBBoardView::setToolCursor (int tool)
         controlViewport->setCursor (UBResources::resources ()->penCursor);
         break;
     case UBStylusTool::Eraser:
-        controlViewport->setCursor (UBResources::resources ()->eraserCursor);
+        // The eraser circle in the scene already shows the cursor position;
+        // hiding the OS cursor prevents a double-indicator.
+        controlViewport->setCursor(Qt::BlankCursor);
         break;
     case UBStylusTool::Marker:
         controlViewport->setCursor (UBResources::resources ()->markerCursor);

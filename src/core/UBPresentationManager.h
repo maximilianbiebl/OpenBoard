@@ -79,6 +79,11 @@ private:
     // Start/Stop is a checkable QPushButton so it can be styled per state.
     QPushButton* mStartStop{nullptr};
 
+    // Panel collapse / expand state.
+    QPushButton* mPanelCollapseBtn{nullptr};
+    int          mPresenterPanelLastWidth{260};
+    bool         mPresenterPanelCollapsed{false};
+
     QCheckBox*   mFollowModeToggle{nullptr};
     QCheckBox*   mAudienceToolbarToggle{nullptr};
     QCheckBox*   mPenToggle{nullptr};
