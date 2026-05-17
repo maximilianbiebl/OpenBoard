@@ -597,15 +597,17 @@ void UBPresentationManager::applyAudienceScreenSelection()
     if (!target)
         return;
 
-    // On Windows, the reliable way to show fullscreen on a specific screen is:
-    // 1. Exit fullscreen so the window becomes moveable.
-    // 2. Force native handle creation.
-    // 3. Set the target screen on the native window.
-    // 4. Move window geometry to the target screen.
-    // 5. Process pending events so the window moves before going fullscreen.
-    // 6. Show fullscreen — Qt will fullscreen on the screen matching the geometry.
-    if (mAudienceWindow->isFullScreen())
-        mAudienceWindow->showNormal();
+    // Reliable multi-screen fullscreen placement:
+    // 1. Hide first to avoid a brief flash on the wrong screen.
+    // 2. Force normal (non-fullscreen) window state so geometry is writable.
+    // 3. Force native handle creation.
+    // 4. Move native window to the target screen.
+    // 5. Set geometry explicitly so Qt knows which screen to fullscreen on.
+    // 6. Process events so the OS registers the move before showFullScreen().
+    // 7. Show fullscreen — Qt picks the screen that matches the current geometry.
+    mAudienceWindow->hide();
+    mAudienceWindow->showNormal();
+    mAudienceWindow->hide();
 
     mAudienceWindow->winId(); // ensure native handle exists
 

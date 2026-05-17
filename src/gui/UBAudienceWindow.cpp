@@ -37,6 +37,8 @@ UBAudienceWindow::UBAudienceWindow(UBBoardController* boardController,
     // audience screen.
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     setAttribute(Qt::WA_DeleteOnClose, false);
+    // Never steal keyboard focus from the presenter window.
+    setAttribute(Qt::WA_ShowWithoutActivating, true);
 
     // Black background so any gap between page and window edge is invisible.
     setStyleSheet("QMainWindow { background: black; }");
@@ -54,6 +56,8 @@ UBAudienceWindow::UBAudienceWindow(UBBoardController* boardController,
     mOwnView->setAudienceMode(true);
     mOwnView->setAudienceToolState(toolState);
     mOwnView->setInteractive(false);
+    // Audience view may not take keyboard focus — all keystrokes belong to the presenter.
+    mOwnView->setFocusPolicy(Qt::NoFocus);
 
     // Remove all scroll bars — the view is always fitted to the window.
     mOwnView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -301,6 +305,12 @@ void UBAudienceWindow::buildToolbar()
 
     // Bottom edge — less intrusive during the presentation.
     addToolBar(Qt::BottomToolBarArea, mToolbar);
+
+    // Prevent toolbar buttons from stealing keyboard focus so the presenter
+    // can keep using keyboard shortcuts on their own screen.
+    mToolbar->setFocusPolicy(Qt::NoFocus);
+    for (QWidget* w : mToolbar->findChildren<QWidget*>())
+        w->setFocusPolicy(Qt::NoFocus);
 }
 
 void UBAudienceWindow::connectSignals()
