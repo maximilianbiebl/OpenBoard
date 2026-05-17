@@ -14,6 +14,8 @@
 #include <QCheckBox>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPainter>
+#include <QStackedWidget>
 #include <QTimer>
 #include <QComboBox>
 #include <QDockWidget>
@@ -36,6 +38,35 @@
 #include "frameworks/UBPlatformUtils.h"
 #include "gui/UBAudienceWindow.h"
 #include "gui/UBMainWindow.h"
+
+// ---------------------------------------------------------------------------
+// Helper: vertical-text label for the collapsed panel tab strip
+// ---------------------------------------------------------------------------
+
+class UBVerticalLabel : public QWidget
+{
+public:
+    explicit UBVerticalLabel(const QString& text, QWidget* parent = nullptr)
+        : QWidget(parent), mText(text)
+    {
+        setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+        setFixedWidth(20);
+    }
+protected:
+    void paintEvent(QPaintEvent*) override
+    {
+        QPainter p(this);
+        p.setPen(Qt::white);
+        QFont f(p.font());
+        f.setPixelSize(11);
+        p.setFont(f);
+        p.translate(0, height());
+        p.rotate(-90.0);
+        p.drawText(QRect(0, 0, height(), width()), Qt::AlignCenter, mText);
+    }
+private:
+    QString mText;
+};
 
 // ---------------------------------------------------------------------------
 // Construction
@@ -118,27 +149,21 @@ void UBPresentationManager::setRunning(bool enabled)
         }
         if (isDuplicate)
         {
-            const int ret = QMessageBox::question(
+            // Always block — the presentation must not start in duplicate/mirror mode.
+            QMessageBox::warning(
                 mPresenterWindow,
-                tr("Nur ein Bildschirm erkannt"),
-                tr("Es wurde kein erweiterter Bildschirm erkannt. "
-                   "Die Präsentation läuft auf dem aktuellen Bildschirm.\n\n"
-                   "Für eine Zwei-Bildschirm-Präsentation wechseln Sie bitte "
-                   "in den erweiterten Anzeigemodus (Win + P → Erweitern).\n\n"
-                   "Trotzdem fortfahren?"),
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No);
-            if (ret != QMessageBox::Yes)
+                tr("Kein erweiterter Bildschirm"),
+                tr("Es wurde kein zweiter Bildschirm im erweiterten Modus erkannt.\n\n"
+                   "Bitte wechseln Sie zuerst in den erweiterten Anzeigemodus "
+                   "(Win + P → Erweitern) und versuchen Sie es dann erneut."));
+            // Revert the Start button.
+            if (mStartStop)
             {
-                // Revert the toggle button
-                if (mStartStop)
-                {
-                    QSignalBlocker blocker(mStartStop);
-                    mStartStop->setChecked(false);
-                    updateStartStopStyle();
-                }
-                return;
+                QSignalBlocker blocker(mStartStop);
+                mStartStop->setChecked(false);
+                updateStartStopStyle();
             }
+            return;
         }
     }
 
@@ -260,12 +285,9 @@ void UBPresentationManager::createPresenterControls()
 
     // ── Custom title bar (matches UBDockPalette tab visual) ──────────────
     {
-        auto* titleBar = new QWidget(mPresenterPanel);
-        titleBar->setMinimumHeight(28);
-        titleBar->setStyleSheet(
+        const QString tabStyle =
             "QWidget {"
             "  background: rgba(80,80,80,220);"
-            "  color: white;"
             "  border-radius: 4px;"
             "}"
             "QPushButton {"
@@ -273,22 +295,57 @@ void UBPresentationManager::createPresenterControls()
             "  border: none; font-size: 14px; font-weight: bold;"
             "  min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px;"
             "}"
-            "QPushButton:hover { background: rgba(255,255,255,40); border-radius: 3px; }");
+            "QPushButton:hover { background: rgba(255,255,255,40); border-radius: 3px; }";
 
-        auto* hb = new QHBoxLayout(titleBar);
-        hb->setContentsMargins(4, 2, 4, 2);
+        auto* titleBar = new QWidget(mPresenterPanel);
+        titleBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        titleBar->setStyleSheet(tabStyle);
+
+        auto* outerVBox = new QVBoxLayout(titleBar);
+        outerVBox->setContentsMargins(2, 2, 2, 2);
+        outerVBox->setSpacing(0);
+
+        // QStackedWidget — index 0 = expanded, index 1 = collapsed strip
+        mPresenterPanelTitleStack = new QStackedWidget(titleBar);
+        mPresenterPanelTitleStack->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        outerVBox->addWidget(mPresenterPanelTitleStack);
+
+        // ── Page 0: expanded horizontal row ─────────────────────────────
+        auto* expandedPage = new QWidget(mPresenterPanelTitleStack);
+        auto* hb = new QHBoxLayout(expandedPage);
+        hb->setContentsMargins(2, 0, 2, 0);
         hb->setSpacing(4);
 
-        mPanelCollapseBtn = new QPushButton(tr("◀"), titleBar);
+        mPanelCollapseBtn = new QPushButton(tr("◀"), expandedPage);
         mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
 
-        mPresenterPanelTitleLbl = new QLabel(tr("Presentation"), titleBar);
-        mPresenterPanelTitleLbl->setStyleSheet("font-size: 12px; font-weight: bold; color: white; background: transparent;");
+        mPresenterPanelTitleLbl = new QLabel(tr("Presentation"), expandedPage);
+        mPresenterPanelTitleLbl->setStyleSheet(
+            "font-size: 12px; font-weight: bold; color: white; background: transparent;");
 
         hb->addWidget(mPanelCollapseBtn);
         hb->addWidget(mPresenterPanelTitleLbl);
         hb->addStretch();
+        mPresenterPanelTitleStack->addWidget(expandedPage);   // index 0
 
+        // ── Page 1: collapsed vertical strip ────────────────────────────
+        auto* collapsedPage = new QWidget(mPresenterPanelTitleStack);
+        collapsedPage->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        auto* vb = new QVBoxLayout(collapsedPage);
+        vb->setContentsMargins(2, 4, 2, 4);
+        vb->setSpacing(4);
+        vb->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+
+        mPanelExpandBtn = new QPushButton(tr("▶"), collapsedPage);
+        mPanelExpandBtn->setToolTip(tr("Expand panel"));
+
+        auto* vertLbl = new UBVerticalLabel(tr("Presentation"), collapsedPage);
+
+        vb->addWidget(mPanelExpandBtn, 0, Qt::AlignHCenter);
+        vb->addWidget(vertLbl, 1);   // stretch=1 so it fills remaining height
+        mPresenterPanelTitleStack->addWidget(collapsedPage);  // index 1
+
+        mPresenterPanelTitleStack->setCurrentIndex(0);
         mPresenterPanel->setTitleBarWidget(titleBar);
     }
 
@@ -590,44 +647,40 @@ void UBPresentationManager::connectPresenterControls()
     });
 
     // ── Panel collapse / expand ───────────────────────────────────────────
-    if (mPanelCollapseBtn && mPresenterPanel)
-    {
-        connect(mPanelCollapseBtn, &QPushButton::clicked, this, [this] {
-            if (!mPresenterPanel || !mPresenterWindow)
-                return;
-            QWidget* content = mPresenterPanel->widget();
-            if (!content)
-                return;
-            if (!mPresenterPanelCollapsed)
-            {
-                // Collapse: remember width, hide content + label, force narrow width.
-                mPresenterPanelLastWidth = mPresenterPanel->width();
-                content->setMinimumWidth(0);
-                content->hide();
-                if (mPresenterPanelTitleLbl)
-                    mPresenterPanelTitleLbl->hide();
-                // Force dock to a thin strip — only the arrow button remains.
-                mPresenterPanel->setMaximumWidth(32);
-                mPresenterPanel->setMinimumWidth(0);
-                mPresenterWindow->resizeDocks({mPresenterPanel}, {32}, Qt::Horizontal);
-                mPanelCollapseBtn->setText(tr("▶"));
-                mPanelCollapseBtn->setToolTip(tr("Expand panel"));
-            }
-            else
-            {
-                // Expand: restore dock width, then show label + content.
-                mPresenterPanel->setMaximumWidth(QWIDGETSIZE_MAX);
-                mPresenterWindow->resizeDocks({mPresenterPanel}, {mPresenterPanelLastWidth}, Qt::Horizontal);
-                if (mPresenterPanelTitleLbl)
-                    mPresenterPanelTitleLbl->show();
-                content->setMinimumWidth(220);
-                content->show();
-                mPanelCollapseBtn->setText(tr("◀"));
-                mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
-            }
-            mPresenterPanelCollapsed = !mPresenterPanelCollapsed;
-        });
-    }
+    auto togglePanel = [this] {
+        if (!mPresenterPanel || !mPresenterWindow)
+            return;
+        QWidget* content = mPresenterPanel->widget();
+        if (!content)
+            return;
+        if (!mPresenterPanelCollapsed)
+        {
+            // Collapse: hide content, switch title bar to collapsed strip.
+            mPresenterPanelLastWidth = mPresenterPanel->width();
+            content->setMinimumWidth(0);
+            content->hide();
+            if (mPresenterPanelTitleStack)
+                mPresenterPanelTitleStack->setCurrentIndex(1);
+            mPresenterPanel->setMaximumWidth(32);
+            mPresenterPanel->setMinimumWidth(0);
+            mPresenterWindow->resizeDocks({mPresenterPanel}, {32}, Qt::Horizontal);
+        }
+        else
+        {
+            // Expand: restore title bar, then show content.
+            mPresenterPanel->setMaximumWidth(QWIDGETSIZE_MAX);
+            mPresenterWindow->resizeDocks({mPresenterPanel}, {mPresenterPanelLastWidth}, Qt::Horizontal);
+            if (mPresenterPanelTitleStack)
+                mPresenterPanelTitleStack->setCurrentIndex(0);
+            content->setMinimumWidth(220);
+            content->show();
+        }
+        mPresenterPanelCollapsed = !mPresenterPanelCollapsed;
+    };
+    if (mPanelCollapseBtn)
+        connect(mPanelCollapseBtn, &QPushButton::clicked, this, togglePanel);
+    if (mPanelExpandBtn)
+        connect(mPanelExpandBtn,   &QPushButton::clicked, this, togglePanel);
 
     if (mDisplayManager)
     {

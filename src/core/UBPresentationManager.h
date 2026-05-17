@@ -80,10 +80,12 @@ private:
     QPushButton* mStartStop{nullptr};
 
     // Panel collapse / expand state.
-    QPushButton* mPanelCollapseBtn{nullptr};
-    QLabel*      mPresenterPanelTitleLbl{nullptr};
-    int          mPresenterPanelLastWidth{260};
-    bool         mPresenterPanelCollapsed{false};
+    QPushButton*    mPanelCollapseBtn{nullptr};   // button in expanded title bar
+    QPushButton*    mPanelExpandBtn{nullptr};      // button in collapsed strip
+    QLabel*         mPresenterPanelTitleLbl{nullptr};
+    QStackedWidget* mPresenterPanelTitleStack{nullptr};
+    int             mPresenterPanelLastWidth{260};
+    bool            mPresenterPanelCollapsed{false};
 
     QCheckBox*   mFollowModeToggle{nullptr};
     QCheckBox*   mAudienceToolbarToggle{nullptr};
