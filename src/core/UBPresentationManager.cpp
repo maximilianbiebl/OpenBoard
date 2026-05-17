@@ -332,7 +332,7 @@ void UBPresentationManager::createPresenterControls()
     }
 
     QWidget* root = new QWidget(mPresenterPanel);
-    root->setMinimumWidth(220);
+    root->setMinimumWidth(80);  // allow narrow mode for adaptive layout
     auto* rootLayout = new QVBoxLayout(root);
     rootLayout->setContentsMargins(8, 8, 8, 8);
     rootLayout->setSpacing(8);
@@ -516,10 +516,10 @@ void UBPresentationManager::createPresenterControls()
         auto* bgOuter = new QVBoxLayout(g);
         bgOuter->setSpacing(4);
 
-        mBgPlainButton   = new QPushButton(tr("□  Blank"));
-        mBgRuledButton   = new QPushButton(tr("≡  Lines"));
-        mBgCrossedButton = new QPushButton(tr("⊞  Grid"));
-        mBgDottedButton  = new QPushButton(tr("⋯  Dots"));
+        mBgPlainButton   = new QPushButton(tr("Blank"));
+        mBgRuledButton   = new QPushButton(tr("Lines"));
+        mBgCrossedButton = new QPushButton(tr("Grid"));
+        mBgDottedButton  = new QPushButton(tr("Dots"));
 
         auto* bgRow1 = new QHBoxLayout();
         auto* bgRow2 = new QHBoxLayout();
@@ -532,9 +532,9 @@ void UBPresentationManager::createPresenterControls()
         bgOuter->addLayout(bgRow1);
         bgOuter->addLayout(bgRow2);
         mAdaptiveLayouts << bgRow1 << bgRow2;
-        mAdaptiveBtns      << mBgPlainButton  << mBgRuledButton  << mBgCrossedButton  << mBgDottedButton;
-        mAdaptiveBtnFull   << tr("□  Blank")  << tr("≡  Lines")  << tr("⊞  Grid")     << tr("⋯  Dots");
-        mAdaptiveBtnShort  << tr("□")         << tr("≡")         << tr("⊞")            << tr("⋯");
+        mAdaptiveBtns      << mBgPlainButton << mBgRuledButton << mBgCrossedButton << mBgDottedButton;
+        mAdaptiveBtnFull   << tr("Blank")    << tr("Lines")    << tr("Grid")        << tr("Dots");
+        mAdaptiveBtnShort  << tr("□")        << tr("≡")        << tr("⊞")          << tr("⋯");
         rootLayout->addWidget(g);
     }
 
@@ -687,7 +687,7 @@ void UBPresentationManager::connectPresenterControls()
         {
             // Expand: restore content first so Qt knows the minimum size,
             // then remove the max-width cap and resize the dock.
-            content->setMinimumWidth(220);
+            content->setMinimumWidth(80);
             content->show();
             if (mPresenterPanelTitleStack)
                 mPresenterPanelTitleStack->setCurrentIndex(0);

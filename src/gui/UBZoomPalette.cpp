@@ -96,9 +96,6 @@ void UBZoomPalette::goHundred()
 
 void UBZoomPalette::hide()
 {
-    if (mAlwaysVisible)
-        return;  // never hide when embedded in a toolbar
-
     qreal currentZoomFactor = mBoardController->currentZoom();
     bool showAsNoZoom = (currentZoomFactor > 0.9 && currentZoomFactor < 1.1);
     if (showAsNoZoom)
@@ -114,21 +111,12 @@ void UBZoomPalette::refreshPalette()
 
     QString stringFactor = tr("%1 x").arg(currentZoomFactor, 0, 'f', 1);
     mCurrentZoomButton->setText(stringFactor);
-
-    if (mAlwaysVisible)
-    {
-        // Always visible mode (toolbar embedding): never auto-hide, always show.
-        show();
-    }
+    adjustSizeAndPosition();
+    if (showAsNoZoom)
+        QTimer::singleShot(500, this, SLOT(hide()));
     else
     {
-        adjustSizeAndPosition();
-        if (showAsNoZoom)
-            QTimer::singleShot(500, this, SLOT(hide()));
-        else
-        {
-            show();
-            raise();
-        }
+        show();
+        raise();
     }
 }

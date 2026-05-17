@@ -87,6 +87,7 @@ protected:
     virtual void mouseReleaseEvent(QMouseEvent *event);
     virtual void tabletEvent(QTabletEvent *event);
     virtual void paintEvent(QPaintEvent *event);
+    virtual void showEvent(QShowEvent *event);
 
 private:
     UBDockPalette *dock;

@@ -197,6 +197,12 @@ void UBBoardView::init ()
 
     setMovingItem(NULL);
     mWidgetMoved = false;
+
+    connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
+            this, [this](int tool, int) {
+                if (bIsControl)
+                    setToolCursor(tool);
+            });
 }
 
 std::shared_ptr<UBGraphicsScene> UBBoardView::scene ()

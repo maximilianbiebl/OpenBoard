@@ -246,17 +246,26 @@ void UBBoardPaletteManager::setupPalettes()
 
     mStylusPalette->stackUnder(mZoomPalette);
 
-    // Embed the zoom palette at the right end of the main toolbar so it sits
-    // visually next to (not floating over) the toolbar.
-    // Deferred so other toolbar items (doc-title label) are added first.
-    // setAlwaysVisible(true) prevents UBZoomPalette from auto-hiding at 1.0×.
+    // Add a permanent zoom-level label at the right end of the main toolbar.
+    // A plain QLabel is used instead of embedding UBZoomPalette because the
+    // palette's own auto-hide logic fights with toolbar widget visibility.
+    // UBZoomPalette continues to work as a floating canvas overlay.
     QTimer::singleShot(0, [this] {
-        if (!mZoomPalette) return;
         auto* toolbar = UBApplication::mainWindow
             ? UBApplication::mainWindow->boardToolBar : nullptr;
         if (!toolbar) return;
-        mZoomPalette->setAlwaysVisible(true);
-        toolbar->addWidget(mZoomPalette);
+        auto* zoomLabel = new QLabel("100%", toolbar);
+        zoomLabel->setStyleSheet(
+            "QLabel { color: white; font-weight: bold; font-size: 13px;"
+            "         padding: 0 10px; background: transparent; }");
+        toolbar->addWidget(zoomLabel);
+        if (auto* bc = UBApplication::boardController)
+        {
+            QObject::connect(bc, &UBBoardController::zoomChanged,
+                             zoomLabel, [zoomLabel](qreal zoom) {
+                zoomLabel->setText(QString("%1%").arg(qRound(zoom * 100)));
+            });
+        }
     });
 
     mTipPalette = new UBStartupHintsPalette(mContainer);
@@ -544,7 +553,6 @@ void UBBoardPaletteManager::containerResized()
 
     if(mZoomPalette)
     {
-        // Only reposition when floating (not yet embedded in the toolbar).
         if (mZoomPalette->parentWidget() == mContainer)
         {
             mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(),
