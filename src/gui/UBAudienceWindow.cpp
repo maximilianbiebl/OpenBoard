@@ -256,11 +256,12 @@ void UBAudienceWindow::buildToolbar()
     mMoveAction   = makeToolAction(":images/stylusPalette/arrow.png",  ":images/stylusPalette/arrowOn.png",  tr("Select"));
     mShapeAction  = makeToolAction(":images/stylusPalette/line.png",   ":images/stylusPalette/lineOn.png",   tr("Shape"));
     mZoomAction   = makeToolAction(":images/stylusPalette/hand.png",   ":images/stylusPalette/handOn.png",   tr("Pan/Zoom"));
+    mLaserAction  = makeToolAction(":images/stylusPalette/laser.png",  ":images/stylusPalette/laserOn.png",  tr("Laser"));
 
     // Checkable + exclusive so exactly one tool appears active.
     auto* toolGroup = new QActionGroup(this);
     toolGroup->setExclusive(true);
-    for (auto* a : {mPenAction, mMarkerAction, mEraserAction, mMoveAction, mShapeAction, mZoomAction})
+    for (auto* a : {mPenAction, mMarkerAction, mEraserAction, mMoveAction, mShapeAction, mZoomAction, mLaserAction})
     {
         a->setCheckable(true);
         toolGroup->addAction(a);
@@ -273,6 +274,7 @@ void UBAudienceWindow::buildToolbar()
     connect(mMoveAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);  });
     connect(mShapeAction,  &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Line);      });
     connect(mZoomAction,   &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Hand);      });
+    connect(mLaserAction,  &QAction::triggered, this, [] { UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Pointer);    });
 
     // Keep toolbar in sync when the global stylus tool changes (e.g. hardware stylus or presenter).
     connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
@@ -284,6 +286,7 @@ void UBAudienceWindow::buildToolbar()
                     { mMoveAction,   { UBStylusTool::Selector, UBStylusTool::Play } },
                     { mShapeAction,  { UBStylusTool::Line } },
                     { mZoomAction,   { UBStylusTool::Hand, UBStylusTool::ZoomIn, UBStylusTool::ZoomOut } },
+                    { mLaserAction,  { UBStylusTool::Pointer } },
                 };
                 for (auto& entry : map)
                     for (int t : entry.tools)
@@ -340,6 +343,7 @@ void UBAudienceWindow::syncFromToolState()
     if (mMoveAction)   mMoveAction->setEnabled(mToolState->moveEnabled());
     if (mShapeAction)  mShapeAction->setEnabled(mToolState->shapeEnabled());
     if (mZoomAction)   mZoomAction->setEnabled(mToolState->zoomEnabled());
+    if (mLaserAction)  mLaserAction->setEnabled(mToolState->zoomEnabled());
 
     if (mOwnView)
         mOwnView->setInteractive(mToolState->anyInteractiveToolEnabled());

@@ -12,6 +12,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QLabel>
 #include <QTimer>
 #include <QComboBox>
 #include <QDockWidget>
@@ -27,6 +28,8 @@
 
 #include "board/UBBoardController.h"
 #include "board/UBBoardView.h"
+#include "core/UB.h"
+#include "document/UBDocumentProxy.h"
 #include "core/UBApplicationController.h"
 #include "core/UBAudienceToolState.h"
 #include "core/UBDisplayManager.h"
@@ -63,6 +66,11 @@ UBPresentationManager::UBPresentationManager(UBApplicationController* appControl
     // Apply the initial tool state so UBAudienceWindow and its toolbar are
     // already in the correct state before the first presentation starts.
     applyAudienceToolState();
+
+    // Always hide the display manager's view at startup — the second screen
+    // must be blank until the user explicitly starts a presentation.
+    if (mDisplayView)
+        mDisplayView->hide();
 }
 
 UBPresentationManager::~UBPresentationManager()
@@ -229,6 +237,14 @@ void UBPresentationManager::createPresenterControls()
         "QPushButton:checked:hover { background: #e74c3c; }");
     rootLayout->addWidget(mStartStop);
 
+    // Document name — shows which document is being presented.
+    mDocumentNameLabel = new QLabel(tr("—"), root);
+    mDocumentNameLabel->setAlignment(Qt::AlignCenter);
+    mDocumentNameLabel->setStyleSheet(
+        "QLabel { color: #555; font-size: 11px; font-style: italic; padding: 2px 4px; }");
+    mDocumentNameLabel->setWordWrap(true);
+    rootLayout->addWidget(mDocumentNameLabel);
+
     // ── Screen selection ──────────────────────────────────────────────────
     {
         auto* g = makeGroup(tr("Audience Screen"));
@@ -265,7 +281,7 @@ void UBPresentationManager::createPresenterControls()
         mFollowModeToggle->setToolTip(
             tr("When enabled, the audience view follows the presenter's zoom and pan,\n"
                "clamped to the page (the audience never sees backstage content)."));
-        mFollowModeToggle->setChecked(true);
+        mFollowModeToggle->setChecked(false); // off by default
         gl->addWidget(mFollowModeToggle);
 
         mResetFocusButton = new QPushButton(tr("↺ Reset to Full Page"));
@@ -358,7 +374,34 @@ void UBPresentationManager::createPresenterControls()
         rootLayout->addWidget(g);
     }
 
+    // ── Page background ───────────────────────────────────────────────────
+    {
+        auto* g = makeGroup(tr("Page Background"));
+        auto* gl = new QHBoxLayout(g);
+        gl->setSpacing(4);
+
+        mBgPlainButton   = new QPushButton(tr("Blank"));
+        mBgRuledButton   = new QPushButton(tr("Lines"));
+        mBgCrossedButton = new QPushButton(tr("Grid"));
+
+        for (auto* b : {mBgPlainButton, mBgRuledButton, mBgCrossedButton})
+            b->setMinimumHeight(28);
+
+        gl->addWidget(mBgPlainButton);
+        gl->addWidget(mBgRuledButton);
+        gl->addWidget(mBgCrossedButton);
+        rootLayout->addWidget(g);
+    }
+
     rootLayout->addStretch();
+
+    // ── Quit ─────────────────────────────────────────────────────────────
+    mQuitButton = new QPushButton(tr("✕  Quit BoardPresenter"), root);
+    mQuitButton->setStyleSheet(
+        "QPushButton { color: #6B7280; border: 1px solid #D1D5DB;"
+        "  border-radius: 5px; padding: 4px 8px; font-size: 11px; }"
+        "QPushButton:hover { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }");
+    rootLayout->addWidget(mQuitButton);
 
     mPresenterPanel->setWidget(root);
     mPresenterWindow->addDockWidget(Qt::RightDockWidgetArea, mPresenterPanel);
@@ -453,10 +496,37 @@ void UBPresentationManager::connectPresenterControls()
     connect(mResetFocusButton, &QPushButton::clicked,
             this, &UBPresentationManager::resetAudienceFocus);
 
+    // Background buttons — only affect the active scene; audience sees the change live.
+    connect(mBgPlainButton, &QPushButton::clicked, this, [this] {
+        if (mBoardController) mBoardController->changeBackground(false, UBPageBackground::plain);
+    });
+    connect(mBgRuledButton, &QPushButton::clicked, this, [this] {
+        if (mBoardController) mBoardController->changeBackground(false, UBPageBackground::ruled);
+    });
+    connect(mBgCrossedButton, &QPushButton::clicked, this, [this] {
+        if (mBoardController) mBoardController->changeBackground(false, UBPageBackground::crossed);
+    });
+
+    connect(mQuitButton, &QPushButton::clicked, this, [] {
+        QApplication::quit();
+    });
+
     if (mDisplayManager)
     {
         connect(mDisplayManager, &UBDisplayManager::availableScreenCountChanged,
                 this, [this](int) { refreshAudienceScreenSelector(); });
+    }
+
+    // Document name label — update whenever the active scene changes.
+    if (mBoardController)
+    {
+        auto updateDocName = [this] {
+            if (!mDocumentNameLabel || !mBoardController) return;
+            auto doc = mBoardController->selectedDocument();
+            mDocumentNameLabel->setText(doc ? doc->name() : tr("—"));
+        };
+        connect(mBoardController, &UBBoardController::activeSceneChanged, this, updateDocName);
+        updateDocName();
     }
 
     // Sync audience viewport whenever the presenter pans or zooms.

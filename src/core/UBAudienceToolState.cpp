@@ -105,6 +105,8 @@ bool UBAudienceToolState::isStylusToolEnabled(int tool) const
             return mZoomEnabled;
 
         case UBStylusTool::Pointer:
+            return mZoomEnabled; // laser pointer grouped with view tools
+
         case UBStylusTool::Capture:
             return false;
 

@@ -155,6 +155,9 @@ private:
     QPointF mPreviousPoint;
     QPoint mMouseDownPos;
 
+    bool mMiddleButtonIsPressed{false};
+    QPointF mMiddleButtonPressPos;
+
     bool mPenPressureSensitive;
     bool mMarkerPressureSensitive;
     bool mUseHighResTabletEvent;

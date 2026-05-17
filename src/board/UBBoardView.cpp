@@ -1114,6 +1114,20 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
         return;
     }
 
+    // Middle mouse button → pan the presenter view (not available in audience mode).
+    if (event->button() == Qt::MiddleButton && !mAudienceMode && (bIsControl || bIsDesktop))
+    {
+        mMiddleButtonIsPressed = true;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        mMiddleButtonPressPos = event->position();
+#else
+        mMiddleButtonPressPos = event->localPos();
+#endif
+        viewport()->setCursor(Qt::ClosedHandCursor);
+        event->accept();
+        return;
+    }
+
     if (mAudienceMode)
     {
         if (!audiencePointInPage(mapToScene(event->pos())))
@@ -1218,7 +1232,7 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
             if (dynamic_cast<UBGraphicsTextItem*>(getMovingItem()))
             {
                 mIsCreatingTextZone = false;
-                UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);
+                // Keep Text tool active — don't auto-switch to Selector.
                 QGraphicsView::mousePressEvent (event);
             }
             else
@@ -1296,6 +1310,22 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
 
 void UBBoardView::mouseMoveEvent (QMouseEvent *event)
 {
+    // Middle mouse button → pan the view.
+    if (mMiddleButtonIsPressed && (event->buttons() & Qt::MiddleButton) && !mAudienceMode)
+    {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        QPointF pos = event->position();
+#else
+        QPointF pos = event->localPos();
+#endif
+        qreal dx = pos.x() - mMiddleButtonPressPos.x();
+        qreal dy = pos.y() - mMiddleButtonPressPos.y();
+        mController->handScroll(dx, dy);
+        mMiddleButtonPressPos = pos;
+        event->accept();
+        return;
+    }
+
     //    static QTime lastCallTime;
     //    if (!lastCallTime.isNull()) {
     //        qDebug() << "time interval is " << lastCallTime.msecsTo(QTime::currentTime());
@@ -1457,6 +1487,14 @@ void UBBoardView::movingItemDestroyed(QObject*)
 
 void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
 {
+    if (event->button() == Qt::MiddleButton && mMiddleButtonIsPressed)
+    {
+        mMiddleButtonIsPressed = false;
+        setToolCursor(UBDrawingController::drawingController()->stylusTool());
+        event->accept();
+        return;
+    }
+
     UBStylusTool::Enum currentTool = (UBStylusTool::Enum)UBDrawingController::drawingController ()->stylusTool ();
 
     setToolCursor (currentTool);
@@ -1581,8 +1619,7 @@ void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
                 UBGraphicsTextItem* textItem = scene()->addTextHtml ("", mapToScene (rubberRect.topLeft ()));
                 event->accept ();
 
-                UBDrawingController::drawingController ()->setStylusTool (UBStylusTool::Selector);
-
+                // Keep Text tool active — don't auto-switch to Selector.
                 textItem->setTextInteractionFlags(Qt::TextEditorInteraction);
                 textItem->setSelected(true);
 

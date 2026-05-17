@@ -23,6 +23,7 @@ class UBAudienceToolState;
 class UBAudienceWindow;
 class QDockWidget;
 class QCheckBox;
+class QLabel;
 class QPushButton;
 class QComboBox;
 
@@ -91,9 +92,17 @@ private:
     QPushButton* mResetFocusButton{nullptr};
     QPushButton* mZoomInButton{nullptr};
     QPushButton* mZoomOutButton{nullptr};
+    QPushButton* mQuitButton{nullptr};
+
+    QLabel*      mDocumentNameLabel{nullptr};
+
+    // Background buttons (plain / ruled / crossed)
+    QPushButton* mBgPlainButton{nullptr};
+    QPushButton* mBgRuledButton{nullptr};
+    QPushButton* mBgCrossedButton{nullptr};
 
     bool mRunning{false};
-    bool mFollowMode{true};
+    bool mFollowMode{false};   // off by default — presenter decides when to lock
     bool mAudienceFrozen{false};
 };
 

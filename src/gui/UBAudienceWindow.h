@@ -74,6 +74,7 @@ private:
     QAction*  mMoveAction{nullptr};
     QAction*  mShapeAction{nullptr};
     QAction*  mZoomAction{nullptr};
+    QAction*  mLaserAction{nullptr};
     QAction*  mZoomInAction{nullptr};
     QAction*  mZoomOutAction{nullptr};
     QAction*  mFitPageAction{nullptr};
