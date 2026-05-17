@@ -352,6 +352,7 @@ UBGraphicsScene::UBGraphicsScene(std::shared_ptr<UBDocumentProxy> document, bool
     createPointer();
     createMarkerCircle();
     createPenCircle();
+    createEraserCircle();
 
     if (UBApplication::applicationController)
     {
@@ -510,10 +511,12 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
     if (currentTool == UBStylusTool::Eraser)
     {
         drawEraser(position, mInputDeviceIsPressed);
+        drawEraserCircle(position);
         accepted = true;
     }
 
     else if (currentTool == UBStylusTool::Marker) {
+        hideEraserCircle();
         if (mInputDeviceIsPressed)
             hideMarkerCircle();
         else {
@@ -523,6 +526,7 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
     }
 
     else if (currentTool == UBStylusTool::Pen) {
+        hideEraserCircle();
         if (mInputDeviceIsPressed)
             hidePenCircle();
         else {
@@ -674,6 +678,7 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
             eraserWidth /= UBApplication::boardController->currentZoom();
 
             eraseLineTo(position, eraserWidth);
+            drawEraserCircle(position);
         }
         else if (currentTool == UBStylusTool::Pointer)
         {
@@ -791,6 +796,8 @@ bool UBGraphicsScene::inputDeviceRelease(int tool, Qt::KeyboardModifiers modifie
     }
 
     mInputDeviceIsPressed = false;
+
+    hideEraserCircle();
 
     setDocumentUpdated();
 
@@ -1389,6 +1396,7 @@ void UBGraphicsScene::hideTool()
     hideEraser();
     hideMarkerCircle();
     hidePenCircle();
+    hideEraserCircle();
 }
 
 void UBGraphicsScene::leaveEvent(QEvent * event)
@@ -3338,6 +3346,48 @@ void UBGraphicsScene::createPenCircle()
     }
 }
 
+void UBGraphicsScene::createEraserCircle()
+{
+    if (mEraserCircle)
+        return;
+
+    mEraserCircle = new QGraphicsEllipseItem();
+    mEraserCircle->setRect(QRect(0, 0, 0, 0));
+    mEraserCircle->setVisible(false);
+
+    QPen pen(Qt::red, 1.5, Qt::SolidLine);
+    mEraserCircle->setPen(pen);
+    mEraserCircle->setBrush(QBrush(Qt::transparent));
+
+    mEraserCircle->setData(UBGraphicsItemData::ItemLayerType, QVariant(UBItemLayerType::Control));
+    mEraserCircle->setData(UBGraphicsItemData::itemLayerType, QVariant(itemLayerType::Eraiser));
+
+    mTools << mEraserCircle;
+    UBGraphicsScene::addItem(mEraserCircle);
+}
+
+void UBGraphicsScene::drawEraserCircle(const QPointF& point)
+{
+    if (!mEraserCircle)
+        createEraserCircle();
+
+    qreal eraserWidth = UBSettings::settings()->currentEraserWidth();
+    if (UBApplication::boardController)
+    {
+        eraserWidth /= UBApplication::boardController->systemScaleFactor();
+        eraserWidth /= UBApplication::boardController->currentZoom();
+    }
+    qreal r = eraserWidth / 2.0;
+    mEraserCircle->setRect(point.x() - r, point.y() - r, eraserWidth, eraserWidth);
+    mEraserCircle->show();
+}
+
+void UBGraphicsScene::hideEraserCircle()
+{
+    if (mEraserCircle)
+        mEraserCircle->hide();
+}
+
 void UBGraphicsScene::updateEraserColor()
 {
     if (!mEraser)
@@ -3404,7 +3454,11 @@ void UBGraphicsScene::setToolCursor(int tool)
         deselectAllItems();
         hideMarkerCircle();
         hidePenCircle();
+        hideEraserCircle();
     }
+
+    if (tool != (int)UBStylusTool::Eraser)
+        hideEraserCircle();
 
     if (mCurrentStroke && mCurrentStroke->polygons().empty()){
         delete mCurrentStroke;

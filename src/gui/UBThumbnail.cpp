@@ -92,6 +92,12 @@ int UBThumbnail::sceneIndex() const
 
 void UBThumbnail::startInlineEdit()
 {
+    // Show full text for editing (not elided version)
+    const QString full = mTextItem->unelidedText();
+    if (!full.isEmpty())
+        mTextItem->setPlainText(full);
+
+    mTextItem->setEditMode(true);
     mTextItem->setTextInteractionFlags(Qt::TextEditorInteraction);
     mTextItem->setFocus(Qt::MouseFocusReason);
     mTextItem->document()->clearUndoRedoStacks();

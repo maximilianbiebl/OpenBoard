@@ -25,6 +25,8 @@
 #include <QFocusEvent>
 #include <QFontMetricsF>
 #include <QKeyEvent>
+#include <QPainter>
+#include <QPen>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextOption>
@@ -91,9 +93,33 @@ void UBThumbnailTextItem::computeText()
     setPlainText(elidedText);
 }
 
+void UBThumbnailTextItem::setEditMode(bool editing)
+{
+    mIsEditing = editing;
+    if (editing)
+        document()->setPageColor(Qt::white);
+    else
+        document()->setPageColor(Qt::transparent);
+    update();
+}
+
+void UBThumbnailTextItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+    if (mIsEditing)
+    {
+        painter->save();
+        painter->setPen(QPen(QColor("#0078d4"), 2)); // blue border like Windows input
+        painter->setBrush(Qt::white);
+        painter->drawRect(boundingRect().adjusted(0, 0, -1, -1));
+        painter->restore();
+    }
+    QGraphicsTextItem::paint(painter, option, widget);
+}
+
 void UBThumbnailTextItem::focusOutEvent(QFocusEvent* event)
 {
     setTextInteractionFlags(Qt::NoTextInteraction);
+    setEditMode(false);
     emit editingFinished(toPlainText());
     QGraphicsTextItem::focusOutEvent(event);
 }
@@ -109,6 +135,7 @@ void UBThumbnailTextItem::keyPressEvent(QKeyEvent* event)
     }
     if (event->key() == Qt::Key_Escape)
     {
+        setEditMode(false);
         setTextInteractionFlags(Qt::NoTextInteraction);
         clearFocus();
         event->accept();

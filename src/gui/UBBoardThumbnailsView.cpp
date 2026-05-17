@@ -176,6 +176,17 @@ void UBBoardThumbnailsView::resizeEvent(QResizeEvent *event)
 
 void UBBoardThumbnailsView::mousePressEvent(QMouseEvent *event)
 {
+    // If a text item is being edited, clicking elsewhere should commit the edit
+    // QGraphicsView may not automatically clear focus from the editing item when
+    // clicking on the background, so we do it explicitly here.
+    if (scene() && scene()->focusItem())
+    {
+        QGraphicsItem* focusItem = scene()->focusItem();
+        QGraphicsItem* clickedItem = itemAt(event->pos());
+        if (clickedItem != focusItem && !focusItem->isAncestorOf(clickedItem))
+            scene()->clearFocus();
+    }
+
     // remember currently selected item
     auto selection = scene()->selectedItems();
     // first ask the thumbnails to process the event for the UI buttons

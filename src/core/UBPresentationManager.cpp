@@ -536,6 +536,16 @@ void UBPresentationManager::connectPresenterControls()
                 this, [this](int) { refreshAudienceScreenSelector(); });
     }
 
+    // Add a toolbar action to toggle the presenter panel
+    if (mPresenterWindow && mPresenterPanel)
+    {
+        QAction* togglePanelAction = mPresenterPanel->toggleViewAction();
+        togglePanelAction->setText(tr("Presenter Panel"));
+        togglePanelAction->setToolTip(tr("Show/hide the presentation control panel"));
+        mPresenterWindow->boardToolBar->addSeparator();
+        mPresenterWindow->boardToolBar->addAction(togglePanelAction);
+    }
+
     // Document name — update the main window title bar whenever the active scene changes.
     if (mBoardController)
     {
@@ -544,6 +554,8 @@ void UBPresentationManager::connectPresenterControls()
             auto doc = mBoardController->selectedDocument();
             QString docName = doc ? doc->name() : QString();
             mPresenterWindow->setWindowTitle(docName.isEmpty() ? "BoardPresenter" : docName + " \xe2\x80\x94 BoardPresenter");
+            if (mDocTitleLabel)
+                mDocTitleLabel->setText(docName.isEmpty() ? tr("BoardPresenter") : docName);
         };
         connect(mBoardController, &UBBoardController::activeSceneChanged, this, updateDocName);
         connect(mBoardController, &UBDocumentContainer::documentSet, this, [updateDocName](std::shared_ptr<UBDocumentProxy>){ updateDocName(); });

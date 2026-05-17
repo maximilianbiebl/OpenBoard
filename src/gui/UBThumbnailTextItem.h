@@ -42,14 +42,19 @@ public:
     void setText(const QString& text);
     void computeText();
 
+    void setEditMode(bool editing);
+    const QString& unelidedText() const { return mUnelidedText; }
+
 signals:
     void editingFinished(const QString& text);
 
 protected:
     void focusOutEvent(QFocusEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget) override;
 
 private:
     qreal mWidth{0};
     QString mUnelidedText{};
+    bool mIsEditing{false};
 };

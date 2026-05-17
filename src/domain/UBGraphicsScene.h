@@ -407,6 +407,8 @@ signals:
         void drawPenCircle(const QPointF& pEndPoint);
         void hideMarkerCircle();
         void hidePenCircle();
+        void drawEraserCircle(const QPointF& point);
+        void hideEraserCircle();
         void DisposeMagnifierQWidgets();
 
 
@@ -429,6 +431,7 @@ signals:
         void createPointer();
         void createMarkerCircle();
         void createPenCircle();
+        void createEraserCircle();
         void updateEraserColor();
         void updateMarkerCircleColor();
         void updatePenCircleColor();
@@ -439,6 +442,7 @@ signals:
         QGraphicsEllipseItem* mPointer; // "laser" pointer
         QGraphicsEllipseItem* mMarkerCircle; // dotted circle around marker
         QGraphicsEllipseItem* mPenCircle; // dotted circle around pen
+        QGraphicsEllipseItem* mEraserCircle{nullptr}; // circle showing eraser size on audience screen
 
         QSet<QGraphicsItem*> mAddedItems;
         QSet<QGraphicsItem*> mRemovedItems;
