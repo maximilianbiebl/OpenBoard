@@ -45,9 +45,17 @@ signals:
 
 protected:
     void updateMaxWidth();
-    void mouseMoveEvent(QMouseEvent *event);
-    void resizeEvent(QResizeEvent *event);
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
+private:
+    static constexpr int kGripWidth = 8;
+    bool mEdgeDragging{false};
+    int  mEdgeDragStartX{0};
+    int  mEdgeDragStartWidth{0};
+    bool isOnLeftEdge(const QPoint& pos) const { return pos.x() < kGripWidth; }
 };
 
 #endif // UBRIGHTPALETTE_H

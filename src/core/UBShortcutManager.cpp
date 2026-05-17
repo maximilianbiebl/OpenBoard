@@ -379,6 +379,16 @@ int UBShortcutManager::columnCount(const QModelIndex &parent) const
     return 5;
 }
 
+Qt::ItemFlags UBShortcutManager::flags(const QModelIndex &index) const
+{
+    Qt::ItemFlags base = QAbstractTableModel::flags(index);
+    // Only data rows (not group headers) in the key-sequence column are editable.
+    QAction* action = getAction(index);
+    if (action && !action->property("builtIn").toBool() && index.column() == 2)
+        return base | Qt::ItemIsEditable;
+    return base;
+}
+
 QVariant UBShortcutManager::data(const QModelIndex &index, int role) const
 {
     QString group;

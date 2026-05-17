@@ -43,6 +43,7 @@ UBRightPalette::UBRightPalette(QWidget *parent, const char *name):
 {
     setObjectName(name);
     setOrientation(eUBDockOrientation_Right);
+    setMouseTracking(true);
     mCollapseWidth = 150;
     bool isCollapsed = false;
     if(mCurrentMode == eUBDockPaletteWidget_BOARD){
@@ -70,12 +71,49 @@ UBRightPalette::~UBRightPalette()
  * \brief Handle the mouse move event
  * @event as the mouse move event
  */
+void UBRightPalette::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && isOnLeftEdge(event->pos()))
+    {
+        mEdgeDragging = true;
+        mEdgeDragStartX = event->globalPosition().toPoint().x();
+        mEdgeDragStartWidth = width();
+        event->accept();
+        return;
+    }
+    UBDockPalette::mousePressEvent(event);
+}
+
+void UBRightPalette::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (mEdgeDragging)
+    {
+        mEdgeDragging = false;
+        unsetCursor();
+        event->accept();
+        return;
+    }
+    UBDockPalette::mouseReleaseEvent(event);
+}
+
 void UBRightPalette::mouseMoveEvent(QMouseEvent *event)
 {
-    if(mCanResize)
+    if (mEdgeDragging)
     {
-        UBDockPalette::mouseMoveEvent(event);
+        int delta = mEdgeDragStartX - event->globalPosition().toPoint().x();
+        int newWidth = qBound(mCollapseWidth, mEdgeDragStartWidth + delta, maximumWidth());
+        resize(newWidth, height());
+        event->accept();
+        return;
     }
+
+    if (isOnLeftEdge(event->pos()))
+        setCursor(Qt::SizeHorCursor);
+    else if (!mCanResize)
+        unsetCursor();
+
+    if (mCanResize)
+        UBDockPalette::mouseMoveEvent(event);
 }
 
 /**
