@@ -533,21 +533,12 @@ void UBPresentationManager::connectPresenterControls()
         mDocTitleLabel = new QLabel(tr("BoardPresenter"), mPresenterWindow->boardToolBar);
         mDocTitleLabel->setAlignment(Qt::AlignCenter);
         mDocTitleLabel->setStyleSheet(
-            "QLabel { font-size: 14px; font-weight: bold; color: white; padding: 0 12px; }");
+            "QLabel { font-size: 14px; font-weight: bold; padding: 0 12px; }");
         mPresenterWindow->boardToolBar->addWidget(mDocTitleLabel);
 
         auto* spacerR = new QWidget();
         spacerR->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         mPresenterWindow->boardToolBar->addWidget(spacerR);
-    }
-
-    // Toolbar toggle for the presenter panel (so it can be hidden and restored)
-    if (mPresenterWindow && mPresenterPanel)
-    {
-        QAction* togglePanelAction = mPresenterPanel->toggleViewAction();
-        togglePanelAction->setText(tr("Panel"));
-        togglePanelAction->setToolTip(tr("Show/hide the presentation control panel"));
-        mPresenterWindow->boardToolBar->addAction(togglePanelAction);
     }
 
     // Document name — update the main window title bar whenever the active scene changes.
@@ -605,7 +596,17 @@ void UBPresentationManager::refreshAudienceScreenSelector()
     }
 
     // Default: second screen for audience (if available).
-    mAudienceScreenSelector->setCurrentIndex(screens.size() > 1 ? 1 : 0);
+    // But make sure the audience screen is NOT the same as the presenter window's screen.
+    int defaultAudienceIdx = (screens.size() > 1) ? 1 : 0;
+    if (mPresenterWindow && screens.size() > 1)
+    {
+        QScreen* presenterScreen = mPresenterWindow->screen();
+        int presenterIdx = screens.indexOf(presenterScreen);
+        // If the default audience index == presenter screen, pick the other one
+        if (presenterIdx >= 0 && defaultAudienceIdx == presenterIdx)
+            defaultAudienceIdx = (presenterIdx == 0) ? 1 : 0;
+    }
+    mAudienceScreenSelector->setCurrentIndex(defaultAudienceIdx);
     mAudienceScreenSelector->setEnabled(!screens.isEmpty());
 
     const bool multiScreen = screens.size() > 1;
@@ -638,23 +639,20 @@ void UBPresentationManager::applyAudienceScreenSelection()
     if (!target)
         return;
 
-    // Reliable multi-screen fullscreen placement:
-    // 1. Hide first to avoid a brief flash on the wrong screen.
-    // 2. Force normal (non-fullscreen) window state so geometry is writable.
-    // 3. Force native handle creation.
-    // 4. Move native window to the target screen.
-    // 5. Set geometry explicitly so Qt knows which screen to fullscreen on.
-    // 6. Process events so the OS registers the move before showFullScreen().
-    // 7. Show fullscreen only if running — otherwise just configure the screen.
+    // Keep audience window hidden while repositioning to avoid any flash
+    // on the wrong screen. Move the native window to the target screen via
+    // the window handle (does not require the window to be visible), then
+    // set the geometry, process events so the OS registers the move, and
+    // only then show fullscreen if the presentation is running.
     mAudienceWindow->hide();
-    mAudienceWindow->showNormal();
-    mAudienceWindow->hide();
-
     mAudienceWindow->winId(); // ensure native handle exists
 
     if (QWindow* handle = mAudienceWindow->windowHandle())
+    {
         handle->setScreen(target);
-
+        handle->setGeometry(target->geometry().x(), target->geometry().y(),
+                            target->geometry().width(), target->geometry().height());
+    }
     mAudienceWindow->setGeometry(target->geometry());
     QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
@@ -694,8 +692,11 @@ void UBPresentationManager::applyRunningState()
 #endif
         // The display manager's existing display view must be hidden so the
         // audience window is the only thing on the second screen.
+        // processEvents() forces the hide to take visual effect immediately,
+        // preventing any flash of the legacy display on the audience screen.
         if (mDisplayView)
             mDisplayView->hide();
+        QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
         if (mAudiencePreviewButton)
             mAudiencePreviewButton->setEnabled(true);
@@ -703,6 +704,34 @@ void UBPresentationManager::applyRunningState()
         // Tool state must be applied before the window is shown so the toolbar
         // is already in the correct state when it becomes visible.
         applyAudienceToolState();
+
+        // Ensure the selected audience screen is different from the presenter window's screen.
+        // If the user hasn't changed the selector and defaults happen to collide
+        // (e.g. the projector is the OS primary screen so the main window landed there),
+        // auto-correct by picking the first non-presenter screen.
+        if (mPresenterWindow && mAudienceScreenSelector && mDisplayManager)
+        {
+            const QList<QScreen*> screens = mDisplayManager->availableScreens();
+            if (screens.size() > 1)
+            {
+                QScreen* presenterScreen = mPresenterWindow->screen();
+                const int presenterIdx = screens.indexOf(presenterScreen);
+                const int audienceIdx  = mAudienceScreenSelector->currentIndex();
+                if (presenterIdx >= 0 && presenterIdx == audienceIdx)
+                {
+                    // Move the presenter window to a different screen automatically.
+                    // The audience selector stays where it is.
+                    for (int i = 0; i < screens.size(); ++i)
+                    {
+                        if (i != audienceIdx)
+                        {
+                            movePresenterToNonAudienceScreen(audienceIdx);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         // Show the audience window fullscreen on the selected screen.
         // applyAudienceScreenSelection() calls UBPlatformUtils::showFullScreen()

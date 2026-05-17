@@ -480,7 +480,8 @@ bool UBGraphicsScene::inputDevicePress(const QPointF& scenePos, const qreal& pre
             eraserWidth /= UBApplication::boardController->currentZoom();
 
             eraseLineTo(scenePos, eraserWidth);
-            drawEraser(scenePos, mInputDeviceIsPressed);
+            hideEraser(); // mEraserCircle (Tool layer) shows for both views
+            drawEraserCircle(scenePos);
 
             accepted = true;
         }
@@ -510,7 +511,7 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
 
     if (currentTool == UBStylusTool::Eraser)
     {
-        drawEraser(position, mInputDeviceIsPressed);
+        hideEraser(); // mEraserCircle (Tool layer) shows for both views
         drawEraserCircle(position);
         accepted = true;
     }
@@ -678,6 +679,7 @@ bool UBGraphicsScene::inputDeviceMove(const QPointF& scenePos, const qreal& pres
             eraserWidth /= UBApplication::boardController->currentZoom();
 
             eraseLineTo(position, eraserWidth);
+            hideEraser();
             drawEraserCircle(position);
         }
         else if (currentTool == UBStylusTool::Pointer)
