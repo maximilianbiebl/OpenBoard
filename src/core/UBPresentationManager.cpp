@@ -225,20 +225,6 @@ void UBPresentationManager::createPresenterControls()
     rootLayout->setContentsMargins(8, 8, 8, 8);
     rootLayout->setSpacing(8);
 
-    // ── Document title ────────────────────────────────────────────────────
-    mDocTitleLabel = new QLabel(tr("BoardPresenter"), root);
-    mDocTitleLabel->setAlignment(Qt::AlignCenter);
-    mDocTitleLabel->setStyleSheet(
-        "QLabel {"
-        "  font-size: 13px;"
-        "  font-weight: bold;"
-        "  color: #333333;"
-        "  padding: 4px 8px 6px 8px;"
-        "  border-bottom: 1px solid #dddddd;"
-        "}");
-    mDocTitleLabel->setWordWrap(true);
-    rootLayout->insertWidget(0, mDocTitleLabel);  // insert at top
-
     // ── Start / Stop ──────────────────────────────────────────────────────
     mStartStop = new QPushButton(tr("▶  Start Presentation"), root);
     mStartStop->setCheckable(true);
@@ -536,13 +522,31 @@ void UBPresentationManager::connectPresenterControls()
                 this, [this](int) { refreshAudienceScreenSelector(); });
     }
 
-    // Add a toolbar action to toggle the presenter panel
+    // Document title — centered label in the main toolbar (fullscreen hides the window title bar)
+    if (mPresenterWindow)
+    {
+        // Flexible spacer so the label centres itself
+        auto* spacerL = new QWidget();
+        spacerL->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        mPresenterWindow->boardToolBar->addWidget(spacerL);
+
+        mDocTitleLabel = new QLabel(tr("BoardPresenter"), mPresenterWindow->boardToolBar);
+        mDocTitleLabel->setAlignment(Qt::AlignCenter);
+        mDocTitleLabel->setStyleSheet(
+            "QLabel { font-size: 14px; font-weight: bold; color: white; padding: 0 12px; }");
+        mPresenterWindow->boardToolBar->addWidget(mDocTitleLabel);
+
+        auto* spacerR = new QWidget();
+        spacerR->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        mPresenterWindow->boardToolBar->addWidget(spacerR);
+    }
+
+    // Toolbar toggle for the presenter panel (so it can be hidden and restored)
     if (mPresenterWindow && mPresenterPanel)
     {
         QAction* togglePanelAction = mPresenterPanel->toggleViewAction();
-        togglePanelAction->setText(tr("Presenter Panel"));
+        togglePanelAction->setText(tr("Panel"));
         togglePanelAction->setToolTip(tr("Show/hide the presentation control panel"));
-        mPresenterWindow->boardToolBar->addSeparator();
         mPresenterWindow->boardToolBar->addAction(togglePanelAction);
     }
 

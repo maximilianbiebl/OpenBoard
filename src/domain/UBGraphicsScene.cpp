@@ -3355,12 +3355,22 @@ void UBGraphicsScene::createEraserCircle()
     mEraserCircle->setRect(QRect(0, 0, 0, 0));
     mEraserCircle->setVisible(false);
 
-    QPen pen(Qt::red, 1.5, Qt::SolidLine);
-    mEraserCircle->setPen(pen);
-    mEraserCircle->setBrush(QBrush(Qt::transparent));
-
-    mEraserCircle->setData(UBGraphicsItemData::ItemLayerType, QVariant(UBItemLayerType::Control));
+    // Use Tool layer (1000) — audience view renders FixedBackground..Tool,
+    // so Control-layer items are invisible there. Tool layer is visible in all views.
+    mEraserCircle->setData(UBGraphicsItemData::ItemLayerType, QVariant(UBItemLayerType::Tool));
     mEraserCircle->setData(UBGraphicsItemData::itemLayerType, QVariant(itemLayerType::Eraiser));
+
+    // Colours match the existing mEraser indicator (background-adaptive, semi-transparent grey)
+    if (mDarkBackground)
+    {
+        mEraserCircle->setBrush(UBSettings::eraserBrushDarkBackground);
+        mEraserCircle->setPen(UBSettings::eraserPenDarkBackground);
+    }
+    else
+    {
+        mEraserCircle->setBrush(UBSettings::eraserBrushLightBackground);
+        mEraserCircle->setPen(UBSettings::eraserPenLightBackground);
+    }
 
     mTools << mEraserCircle;
     UBGraphicsScene::addItem(mEraserCircle);
@@ -3390,17 +3400,18 @@ void UBGraphicsScene::hideEraserCircle()
 
 void UBGraphicsScene::updateEraserColor()
 {
-    if (!mEraser)
-        return;
+    const QBrush& brush = mDarkBackground ? UBSettings::eraserBrushDarkBackground : UBSettings::eraserBrushLightBackground;
+    const QPen&   pen   = mDarkBackground ? UBSettings::eraserPenDarkBackground   : UBSettings::eraserPenLightBackground;
 
-    if (mDarkBackground) {
-        mEraser->setBrush(UBSettings::eraserBrushDarkBackground);
-        mEraser->setPen(UBSettings::eraserPenDarkBackground);
+    if (mEraser)
+    {
+        mEraser->setBrush(brush);
+        mEraser->setPen(pen);
     }
-
-    else {
-        mEraser->setBrush(UBSettings::eraserBrushLightBackground);
-        mEraser->setPen(UBSettings::eraserPenLightBackground);
+    if (mEraserCircle)
+    {
+        mEraserCircle->setBrush(brush);
+        mEraserCircle->setPen(pen);
     }
 }
 
