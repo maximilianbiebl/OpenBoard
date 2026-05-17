@@ -204,7 +204,7 @@ int UBBoardController::currentPage() const
     return mActiveSceneIndex + 1;
 }
 
-QString UBBoardController::pageName(int index) const
+QString UBBoardController::pageName(int index)
 {
     auto doc = selectedDocument();
     if (!doc || doc->persistencePath().isEmpty())

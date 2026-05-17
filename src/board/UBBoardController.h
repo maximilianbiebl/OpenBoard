@@ -87,7 +87,7 @@ class UBBoardController : public UBDocumentContainer
 
         int currentPage() const;
 
-        QString pageName(int index) const;
+        QString pageName(int index);
         void setPageName(int index, const QString& name);
 
         QWidget* controlContainer() const
