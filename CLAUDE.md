@@ -6,6 +6,14 @@
 - **Build system**: qmake → nmake
 - **Branch for new work**: `claude/dual-screen-presentation-mode-krZSW`
 
+## Build script names — IMPORTANT
+- The `.pro` file stays `OpenBoard.pro` (qmake reads it by filename — do NOT rename).
+- The compiled executable is `BoardPresenter.exe` (set via `TARGET` in `OpenBoard.pro`).
+- `release_scripts/windows/release.win7.vc9.bat` — `APPLICATION_NAME=BoardPresenter`
+- `release_scripts/windows/create-setup.bat` — `APPLICATION_NAME=BoardPresenter`
+- `OpenBoard-ThirdParty` — separate repo name, unchanged.
+- **Rule**: whenever `TARGET` in `.pro` changes, update `APPLICATION_NAME` in both `.bat` files.
+
 ## MSVC-specific rules — check before every commit
 
 ### 1. `const` correctness

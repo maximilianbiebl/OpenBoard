@@ -21,7 +21,7 @@ pushd %SCRIPT_PATH%\..\..
 set PROJECT_ROOT=%CD%
 popd
 
-set APPLICATION_NAME=OpenBoard
+set APPLICATION_NAME=BoardPresenter
 if "%QT_DIR%"=="" set QT_DIR=C:\Qt\6.6.3\msvc2022_64
 if "%QT_BIN%"=="" set QT_BIN=%QT_DIR%\bin
 if "%INNO_EXE%"=="" (
