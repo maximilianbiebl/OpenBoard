@@ -63,6 +63,7 @@ private:
     void applyAudienceToolState();
     void updateAudienceViewFrame();
     void updateStartStopStyle();
+    void movePresenterToNonAudienceScreen(int audienceScreenIdx);
 
     QPointer<UBApplicationController> mAppController;
     QPointer<UBBoardController>       mBoardController;
@@ -73,6 +74,7 @@ private:
     UBAudienceToolState* mAudienceToolState{nullptr};
     UBAudienceWindow*    mAudienceWindow{nullptr};
     QDockWidget*         mPresenterPanel{nullptr};
+    QLabel*              mDocTitleLabel{nullptr};
 
     // Start/Stop is a checkable QPushButton so it can be styled per state.
     QPushButton* mStartStop{nullptr};

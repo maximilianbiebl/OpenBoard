@@ -156,8 +156,9 @@ void UBPresentationManager::swapPresenterAndAudienceScreens()
         QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
         h->setScreen(newPresenterScreen);
     }
-    mPresenterWindow->setGeometry(newPresenterScreen->availableGeometry());
-    mPresenterWindow->showMaximized();
+    mPresenterWindow->setGeometry(newPresenterScreen->geometry());
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    UBPlatformUtils::showFullScreen(mPresenterWindow);
     mPresenterWindow->activateWindow();
     mPresenterWindow->raise();
 
@@ -168,9 +169,8 @@ void UBPresentationManager::swapPresenterAndAudienceScreens()
         mAudienceScreenSelector->setCurrentIndex(presenterIdx);
     }
 
-    // ── Reposition the audience window if a presentation is running ─
-    if (mRunning)
-        applyAudienceScreenSelection();
+    // ── Reposition the audience window (always, mRunning guard is inside) ──
+    applyAudienceScreenSelection();
 
     // Always bring the presenter window back to front after the swap.
     if (mPresenterWindow)
@@ -224,6 +224,20 @@ void UBPresentationManager::createPresenterControls()
     auto* rootLayout = new QVBoxLayout(root);
     rootLayout->setContentsMargins(8, 8, 8, 8);
     rootLayout->setSpacing(8);
+
+    // ── Document title ────────────────────────────────────────────────────
+    mDocTitleLabel = new QLabel(tr("BoardPresenter"), root);
+    mDocTitleLabel->setAlignment(Qt::AlignCenter);
+    mDocTitleLabel->setStyleSheet(
+        "QLabel {"
+        "  font-size: 13px;"
+        "  font-weight: bold;"
+        "  color: #333333;"
+        "  padding: 4px 8px 6px 8px;"
+        "  border-bottom: 1px solid #dddddd;"
+        "}");
+    mDocTitleLabel->setWordWrap(true);
+    rootLayout->insertWidget(0, mDocTitleLabel);  // insert at top
 
     // ── Start / Stop ──────────────────────────────────────────────────────
     mStartStop = new QPushButton(tr("▶  Start Presentation"), root);
@@ -470,10 +484,11 @@ void UBPresentationManager::connectPresenterControls()
     connect(mAudienceScreenSelector,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
             this,
-            [this](int) {
-                // Only act if a presentation is already running.
-                if (mRunning)
-                    applyAudienceScreenSelection();
+            [this](int newAudienceIdx) {
+                // Move presenter to whichever screen is NOT the audience screen
+                movePresenterToNonAudienceScreen(newAudienceIdx);
+                // Apply audience window placement
+                applyAudienceScreenSelection();
             });
 
     connect(mSwapScreensButton, &QPushButton::clicked,
@@ -588,8 +603,12 @@ void UBPresentationManager::refreshAudienceScreenSelector()
 
 void UBPresentationManager::applyAudienceScreenSelection()
 {
-    if (!mAudienceWindow || !mDisplayManager || !mRunning)
+    if (!mAudienceWindow || !mDisplayManager)
         return;
+
+    // Always hide the legacy display view to prevent it competing with audience window.
+    if (mDisplayView)
+        mDisplayView->hide();
 
     const QList<QScreen*> screens = mDisplayManager->availableScreens();
     if (screens.isEmpty())
@@ -610,7 +629,7 @@ void UBPresentationManager::applyAudienceScreenSelection()
     // 4. Move native window to the target screen.
     // 5. Set geometry explicitly so Qt knows which screen to fullscreen on.
     // 6. Process events so the OS registers the move before showFullScreen().
-    // 7. Show fullscreen — Qt picks the screen that matches the current geometry.
+    // 7. Show fullscreen only if running — otherwise just configure the screen.
     mAudienceWindow->hide();
     mAudienceWindow->showNormal();
     mAudienceWindow->hide();
@@ -623,8 +642,12 @@ void UBPresentationManager::applyAudienceScreenSelection()
     mAudienceWindow->setGeometry(target->geometry());
     QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
-    UBPlatformUtils::showFullScreen(mAudienceWindow);
-    mAudienceWindow->raise();
+    if (mRunning)
+    {
+        UBPlatformUtils::showFullScreen(mAudienceWindow);
+        mAudienceWindow->raise();
+    }
+    // else: window stays hidden; it will be shown correctly when presentation starts
 }
 
 // ---------------------------------------------------------------------------
@@ -669,6 +692,13 @@ void UBPresentationManager::applyRunningState()
         // applyAudienceScreenSelection() calls UBPlatformUtils::showFullScreen()
         // which triggers showEvent() → fitPage() on the audience window.
         applyAudienceScreenSelection();
+
+        // Re-hide the legacy display view to ensure it doesn't compete with the audience window.
+        // Some internal events (screenLayoutChanged) may re-show it; we guard against that here.
+        if (mDisplayView)
+            mDisplayView->hide();
+        QTimer::singleShot(100, this, [this] { if (mDisplayView && mRunning) mDisplayView->hide(); });
+        QTimer::singleShot(500, this, [this] { if (mDisplayView && mRunning) mDisplayView->hide(); });
 
         // Delayed fitPage as a safety net — showEvent may fire before the window
         // has settled into its final geometry on the target screen.
@@ -731,4 +761,46 @@ void UBPresentationManager::updateAudienceViewFrame()
 
     if (UBBoardView* controlView = mBoardController->controlView())
         mAudienceWindow->syncViewport(controlView);
+}
+
+// ---------------------------------------------------------------------------
+// Private: move presenter window to non-audience screen
+// ---------------------------------------------------------------------------
+
+void UBPresentationManager::movePresenterToNonAudienceScreen(int audienceScreenIdx)
+{
+    if (!mDisplayManager || !mPresenterWindow)
+        return;
+
+    const QList<QScreen*> screens = mDisplayManager->availableScreens();
+    if (screens.size() < 2)
+        return;
+
+    // Find first screen that is NOT the audience screen
+    int presenterIdx = -1;
+    for (int i = 0; i < screens.size(); ++i)
+    {
+        if (i != audienceScreenIdx)
+        {
+            presenterIdx = i;
+            break;
+        }
+    }
+    if (presenterIdx < 0)
+        return;
+
+    QScreen* presenterScreen = screens.at(presenterIdx);
+    mPresenterWindow->winId();
+    if (QWindow* h = mPresenterWindow->windowHandle())
+    {
+        if (mPresenterWindow->isFullScreen() || mPresenterWindow->isMaximized())
+            mPresenterWindow->showNormal();
+        QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        h->setScreen(presenterScreen);
+    }
+    mPresenterWindow->setGeometry(presenterScreen->geometry());
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    UBPlatformUtils::showFullScreen(mPresenterWindow);
+    mPresenterWindow->activateWindow();
+    mPresenterWindow->raise();
 }
