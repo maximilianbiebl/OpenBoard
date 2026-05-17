@@ -14,7 +14,7 @@
 #include <QCheckBox>
 #include <QLabel>
 #include <QMessageBox>
-#include <QPainter>
+#include <QPixmap>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QComboBox>
@@ -38,35 +38,6 @@
 #include "frameworks/UBPlatformUtils.h"
 #include "gui/UBAudienceWindow.h"
 #include "gui/UBMainWindow.h"
-
-// ---------------------------------------------------------------------------
-// Helper: vertical-text label for the collapsed panel tab strip
-// ---------------------------------------------------------------------------
-
-class UBVerticalLabel : public QWidget
-{
-public:
-    explicit UBVerticalLabel(const QString& text, QWidget* parent = nullptr)
-        : QWidget(parent), mText(text)
-    {
-        setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
-        setFixedWidth(20);
-    }
-protected:
-    void paintEvent(QPaintEvent*) override
-    {
-        QPainter p(this);
-        p.setPen(Qt::white);
-        QFont f(p.font());
-        f.setPixelSize(11);
-        p.setFont(f);
-        p.translate(0, height());
-        p.rotate(-90.0);
-        p.drawText(QRect(0, 0, height(), width()), Qt::AlignCenter, mText);
-    }
-private:
-    QString mText;
-};
 
 // ---------------------------------------------------------------------------
 // Construction
@@ -316,7 +287,7 @@ void UBPresentationManager::createPresenterControls()
         hb->setContentsMargins(2, 0, 2, 0);
         hb->setSpacing(4);
 
-        mPanelCollapseBtn = new QPushButton(tr("◀"), expandedPage);
+        mPanelCollapseBtn = new QPushButton(tr("▶"), expandedPage);
         mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
 
         mPresenterPanelTitleLbl = new QLabel(tr("Presentation"), expandedPage);
@@ -336,13 +307,22 @@ void UBPresentationManager::createPresenterControls()
         vb->setSpacing(4);
         vb->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
-        mPanelExpandBtn = new QPushButton(tr("▶"), collapsedPage);
+        mPanelExpandBtn = new QPushButton(tr("◀"), collapsedPage);
         mPanelExpandBtn->setToolTip(tr("Expand panel"));
 
-        auto* vertLbl = new UBVerticalLabel(tr("Presentation"), collapsedPage);
+        auto* iconLbl = new QLabel(collapsedPage);
+        {
+            QPixmap px(":images/toolbar/display.png");
+            if (px.isNull())
+                px = QPixmap(":images/toolbar/present.png"); // fallback
+            if (!px.isNull())
+                iconLbl->setPixmap(px.scaled(20, 20, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+        iconLbl->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+        iconLbl->setStyleSheet("background: transparent;");
 
         vb->addWidget(mPanelExpandBtn, 0, Qt::AlignHCenter);
-        vb->addWidget(vertLbl, 1);   // stretch=1 so it fills remaining height
+        vb->addWidget(iconLbl, 0, Qt::AlignHCenter);
         mPresenterPanelTitleStack->addWidget(collapsedPage);  // index 1
 
         mPresenterPanelTitleStack->setCurrentIndex(0);
