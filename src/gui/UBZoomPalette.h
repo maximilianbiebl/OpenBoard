@@ -43,12 +43,16 @@ class UBZoomPalette : public UBFloatingPalette
         UBZoomPalette(QWidget *parent);
         virtual ~UBZoomPalette();
 
+    public:
+        void setAlwaysVisible(bool always) { mAlwaysVisible = always; }
+
     public slots:
         void hide();
         void refreshPalette();
 
     private:
         UBBoardController* mBoardController;
+        bool mAlwaysVisible{false};
         QPushButton *mCurrentZoomButton;
         QPushButton *mHundredButton;
         QPushButton *mShowAllButton;

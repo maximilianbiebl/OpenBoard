@@ -246,6 +246,19 @@ void UBBoardPaletteManager::setupPalettes()
 
     mStylusPalette->stackUnder(mZoomPalette);
 
+    // Embed the zoom palette at the right end of the main toolbar so it sits
+    // visually next to (not floating over) the toolbar.
+    // Deferred so other toolbar items (doc-title label) are added first.
+    // setAlwaysVisible(true) prevents UBZoomPalette from auto-hiding at 1.0×.
+    QTimer::singleShot(0, [this] {
+        if (!mZoomPalette) return;
+        auto* toolbar = UBApplication::mainWindow
+            ? UBApplication::mainWindow->boardToolBar : nullptr;
+        if (!toolbar) return;
+        mZoomPalette->setAlwaysVisible(true);
+        toolbar->addWidget(mZoomPalette);
+    });
+
     mTipPalette = new UBStartupHintsPalette(mContainer);
     QList<QAction*> backgroundsActions;
 
@@ -531,9 +544,13 @@ void UBBoardPaletteManager::containerResized()
 
     if(mZoomPalette)
     {
-        mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(),
-                           userTop + userHeight - innerMargin - mZoomPalette->height());
-        mZoomPalette->adjustSizeAndPosition();
+        // Only reposition when floating (not yet embedded in the toolbar).
+        if (mZoomPalette->parentWidget() == mContainer)
+        {
+            mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(),
+                               userTop + userHeight - innerMargin - mZoomPalette->height());
+            mZoomPalette->adjustSizeAndPosition();
+        }
         mZoomPalette->refreshPalette();
     }
 
