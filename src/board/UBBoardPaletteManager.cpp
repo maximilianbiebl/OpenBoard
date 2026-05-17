@@ -253,12 +253,14 @@ void UBBoardPaletteManager::setupPalettes()
         backgroundsActions << UBApplication::mainWindow->actionSeyesRuledLightBackground;
     else
         backgroundsActions << UBApplication::mainWindow->actionRuledLightBackground;
+    backgroundsActions << UBApplication::mainWindow->actionDottedLightBackground;
     backgroundsActions << UBApplication::mainWindow->actionPlainDarkBackground;
     backgroundsActions << UBApplication::mainWindow->actionCrossedDarkBackground;
     if(UBSettings::settings()->isSeyesRuledBackground())
         backgroundsActions << UBApplication::mainWindow->actionSeyesRuledDarkBackground;
     else
         backgroundsActions << UBApplication::mainWindow->actionRuledDarkBackground;
+    backgroundsActions << UBApplication::mainWindow->actionDottedDarkBackground;
 
     mBackgroundsPalette = new UBBackgroundPalette(backgroundsActions, mContainer);
     mBackgroundsPalette->setButtonIconSize(QSize(128, 128));
@@ -458,6 +460,8 @@ void UBBoardPaletteManager::connectPalettes()
     connect(UBApplication::mainWindow->actionCrossedDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
     connect(UBApplication::mainWindow->actionRuledDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
     connect(UBApplication::mainWindow->actionSeyesRuledDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
+    connect(UBApplication::mainWindow->actionDottedLightBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
+    connect(UBApplication::mainWindow->actionDottedDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
     connect(UBApplication::mainWindow->actionPodcast, SIGNAL(triggered(bool)), this, SLOT(tooglePodcastPalette(bool)));
 
     connect(UBApplication::mainWindow->actionAddItemToCurrentPage, SIGNAL(triggered()), this, SLOT(addItemToCurrentPage()));
@@ -550,6 +554,9 @@ void UBBoardPaletteManager::changeBackground()
              UBApplication::mainWindow->actionSeyesRuledLightBackground->isChecked())
         UBApplication::boardController->changeBackground(false, UBPageBackground::ruled);
 
+    else if (UBApplication::mainWindow->actionDottedLightBackground->isChecked())
+        UBApplication::boardController->changeBackground(false, UBPageBackground::dotted);
+
     else if (UBApplication::mainWindow->actionPlainDarkBackground->isChecked())
         UBApplication::boardController->changeBackground(true, UBPageBackground::plain);
 
@@ -559,6 +566,9 @@ void UBBoardPaletteManager::changeBackground()
     else if (UBApplication::mainWindow->actionRuledDarkBackground->isChecked() ||
              UBApplication::mainWindow->actionSeyesRuledDarkBackground->isChecked())
         UBApplication::boardController->changeBackground(true, UBPageBackground::ruled);
+
+    else if (UBApplication::mainWindow->actionDottedDarkBackground->isChecked())
+        UBApplication::boardController->changeBackground(true, UBPageBackground::dotted);
 
     else
         UBApplication::boardController->changeBackground(false, UBPageBackground::plain);

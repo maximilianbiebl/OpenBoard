@@ -27,7 +27,10 @@
 
 
 
+#include <QContextMenuEvent>
+#include <QInputDialog>
 #include <QList>
+#include <QMenu>
 #include <QPointF>
 #include <QPixmap>
 #include <QTransform>
@@ -279,7 +282,44 @@ void UBBoardThumbnailsView::mouseReleaseEvent(QMouseEvent *event)
 
 void UBBoardThumbnailsView::mouseDoubleClickEvent(QMouseEvent* event)
 {
-    // do not forward event to QGraphicsView to avoid change of selection
+    UBThumbnail* item = dynamic_cast<UBThumbnail*>(itemAt(event->pos()));
+    if (!item)
+        return;
+
+    int pageIndex = item->sceneIndex();
+    QString current = UBApplication::boardController->pageName(pageIndex);
+    bool ok = false;
+    QString name = QInputDialog::getText(this, tr("Rename Page"),
+                                         tr("Page name (leave empty for default):"),
+                                         QLineEdit::Normal, current, &ok);
+    if (!ok)
+        return;
+
+    UBApplication::boardController->setPageName(pageIndex, name);
+    item->setPageLabel(name);
+}
+
+void UBBoardThumbnailsView::contextMenuEvent(QContextMenuEvent* event)
+{
+    UBThumbnail* item = dynamic_cast<UBThumbnail*>(itemAt(event->pos()));
+    if (!item)
+        return;
+
+    QMenu menu(this);
+    QAction* renameAction = menu.addAction(tr("Rename Page..."));
+    if (menu.exec(event->globalPos()) == renameAction)
+    {
+        int pageIndex = item->sceneIndex();
+        QString current = UBApplication::boardController->pageName(pageIndex);
+        bool ok = false;
+        QString name = QInputDialog::getText(this, tr("Rename Page"),
+                                             tr("Page name (leave empty for default):"),
+                                             QLineEdit::Normal, current, &ok);
+        if (!ok)
+            return;
+        UBApplication::boardController->setPageName(pageIndex, name);
+        item->setPageLabel(name);
+    }
 }
 
 void UBBoardThumbnailsView::scrollContentsBy(int dx, int dy)

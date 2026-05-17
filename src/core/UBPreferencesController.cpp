@@ -52,9 +52,37 @@
 #include <QTableView>
 #include <QHeaderView>
 #include <QVBoxLayout>
+#include <QKeySequenceEdit>
+#include <QStyledItemDelegate>
 
 #include "core/memcheck.h"
 
+
+// Delegate that provides QKeySequenceEdit for column 2 (key sequence) in the shortcuts table.
+class UBKeySeqDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&,
+                          const QModelIndex& index) const override
+    {
+        if (index.column() != 2) return nullptr;
+        return new QKeySequenceEdit(parent);
+    }
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
+        static_cast<QKeySequenceEdit*>(editor)->setKeySequence(
+            QKeySequence(index.data(Qt::EditRole).toString()));
+    }
+    void setModelData(QWidget* editor, QAbstractItemModel* model,
+                      const QModelIndex& index) const override
+    {
+        model->setData(index,
+            static_cast<QKeySequenceEdit*>(editor)->keySequence().toString(),
+            Qt::EditRole);
+    }
+};
 
 qreal UBPreferencesController::sSliderRatio = 10.0;
 qreal UBPreferencesController::sMinPenWidth = 0.5;
@@ -376,6 +404,7 @@ void UBPreferencesController::init()
         view->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
         view->setAlternatingRowColors(true);
         view->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
+        view->setItemDelegateForColumn(2, new UBKeySeqDelegate(view));
         vl->addWidget(view);
 
         mPreferencesUI->mainTabWidget->addTab(shortcutsTab, tr("Shortcuts"));

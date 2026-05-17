@@ -76,6 +76,14 @@ void UBThumbnail::setSceneIndex(int sceneIndex)
     mTextItem->setPageNumber(sceneIndex + 1);
 }
 
+void UBThumbnail::setPageLabel(const QString& name)
+{
+    if (name.isEmpty())
+        mTextItem->setPageNumber(mIndex + 1);
+    else
+        mTextItem->setText(name);
+}
+
 int UBThumbnail::sceneIndex() const
 {
     return mIndex;

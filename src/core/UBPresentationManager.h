@@ -94,8 +94,6 @@ private:
     QPushButton* mZoomOutButton{nullptr};
     QPushButton* mQuitButton{nullptr};
 
-    QLabel*      mDocumentNameLabel{nullptr};
-
     // Background buttons (plain / ruled / crossed / dotted)
     QPushButton* mBgPlainButton{nullptr};
     QPushButton* mBgRuledButton{nullptr};

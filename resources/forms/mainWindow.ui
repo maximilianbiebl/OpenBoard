@@ -1350,6 +1350,44 @@
     <string>Seyes ruled Dark Background</string>
    </property>
   </action>
+  <action name="actionDottedLightBackground">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/backgroundPalette/background9.svg</normaloff>
+     <normalon>:/images/backgroundPalette/background9On.svg</normalon>:/images/backgroundPalette/background9.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Dotted Light Background</string>
+   </property>
+   <property name="iconText">
+    <string>Light</string>
+   </property>
+   <property name="toolTip">
+    <string>Dotted Light Background</string>
+   </property>
+  </action>
+  <action name="actionDottedDarkBackground">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/backgroundPalette/background10.svg</normaloff>
+     <normalon>:/images/backgroundPalette/background10On.svg</normalon>:/images/backgroundPalette/background10.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Dotted Dark Background</string>
+   </property>
+   <property name="iconText">
+    <string>Dark</string>
+   </property>
+   <property name="toolTip">
+    <string>Dotted Dark Background</string>
+   </property>
+  </action>
   <action name="actionPodcast">
    <property name="checkable">
     <bool>true</bool>

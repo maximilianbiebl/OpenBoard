@@ -212,7 +212,8 @@ void UBPresentationManager::createPresenterControls()
     mPresenterPanel = new QDockWidget(tr("Presentation"), mPresenterWindow);
     mPresenterPanel->setObjectName("presentationControlPanel");
     mPresenterPanel->setFeatures(QDockWidget::DockWidgetMovable |
-                                 QDockWidget::DockWidgetFloatable);
+                                 QDockWidget::DockWidgetFloatable |
+                                 QDockWidget::DockWidgetClosable);
 
     QWidget* root = new QWidget(mPresenterPanel);
     root->setMinimumWidth(220);
@@ -236,14 +237,6 @@ void UBPresentationManager::createPresenterControls()
         "}"
         "QPushButton:checked:hover { background: #e74c3c; }");
     rootLayout->addWidget(mStartStop);
-
-    // Document name — shows which document is being presented.
-    mDocumentNameLabel = new QLabel(tr("—"), root);
-    mDocumentNameLabel->setAlignment(Qt::AlignCenter);
-    mDocumentNameLabel->setStyleSheet(
-        "QLabel { color: #555; font-size: 11px; font-style: italic; padding: 2px 4px; }");
-    mDocumentNameLabel->setWordWrap(true);
-    rootLayout->addWidget(mDocumentNameLabel);
 
     // ── Screen selection ──────────────────────────────────────────────────
     {
@@ -524,15 +517,17 @@ void UBPresentationManager::connectPresenterControls()
                 this, [this](int) { refreshAudienceScreenSelector(); });
     }
 
-    // Document name label — update whenever the active scene changes.
+    // Document name — update the main window title bar whenever the active scene changes.
     if (mBoardController)
     {
         auto updateDocName = [this] {
-            if (!mDocumentNameLabel || !mBoardController) return;
+            if (!mBoardController || !mPresenterWindow) return;
             auto doc = mBoardController->selectedDocument();
-            mDocumentNameLabel->setText(doc ? doc->name() : tr("—"));
+            QString docName = doc ? doc->name() : QString();
+            mPresenterWindow->setWindowTitle(docName.isEmpty() ? "BoardPresenter" : docName + " \xe2\x80\x94 BoardPresenter");
         };
         connect(mBoardController, &UBBoardController::activeSceneChanged, this, updateDocName);
+        connect(mBoardController, &UBDocumentContainer::documentSet, this, [updateDocName](auto){ updateDocName(); });
         updateDocName();
     }
 

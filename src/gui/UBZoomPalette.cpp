@@ -47,17 +47,17 @@ UBZoomPalette::UBZoomPalette(QWidget* parent)
     mBoardController = UBApplication::boardController;
     QLayout* layout = new QVBoxLayout(this);
     mCurrentZoomButton = new QPushButton(parent);
-    mCurrentZoomButton->setStyleSheet(QString("QPushButton { color: white; background-color: transparent; border: none; font-family: Arial; font-weight: bold; font-size: 20px }"));
+    mCurrentZoomButton->setStyleSheet(QString("QPushButton { color: white; background-color: transparent; border: none; font-family: Arial; font-weight: bold; font-size: 13px }"));
     mCurrentZoomButton->setFocusPolicy(Qt::NoFocus);
     connect(mCurrentZoomButton, SIGNAL(clicked(bool)), this, SLOT(showHideExtraButton()));
     connect(mBoardController, SIGNAL(zoomChanged(qreal)), this, SLOT(refreshPalette()));
     connect(mBoardController, SIGNAL(activeSceneChanged()), this, SLOT(refreshPalette()));
 
     mHundredButton = new QPushButton(parent);
-    mHundredButton->setStyleSheet(QString("QPushButton { color: white; background-color: transparent; border: none; font-family: Arial; font-weight: bold; font-size: 20px }"));
+    mHundredButton->setStyleSheet(QString("QPushButton { color: white; background-color: transparent; border: none; font-family: Arial; font-weight: bold; font-size: 13px }"));
     mHundredButton->setFocusPolicy(Qt::NoFocus);
     mHundredButton->setIcon(QIcon(":/images/stylusPalette/restoreZoom.png"));
-    mHundredButton->setIconSize(QSize(42,42));
+    mHundredButton->setIconSize(QSize(24,24));
     connect(mHundredButton, SIGNAL(clicked(bool)), this, SLOT(goHundred()));
 
     layout->setContentsMargins(radius() + 15, 4, radius() + 15, 4);

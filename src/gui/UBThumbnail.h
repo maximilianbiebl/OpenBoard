@@ -46,6 +46,7 @@ public:
     QPixmap pixmap() const;
     void setSceneIndex(int sceneIndex);
     int sceneIndex() const;
+    void setPageLabel(const QString& name);  // empty name → revert to "Page N"
     void setThumbnailSize(QSizeF size);
 
     void setColumn(int column);

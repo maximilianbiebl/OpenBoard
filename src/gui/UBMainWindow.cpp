@@ -145,6 +145,27 @@ void UBMainWindow::switchToDocumentsWidget()
 
 void UBMainWindow::keyPressEvent(QKeyEvent *event)
 {
+    // Forward page navigation keys to the board controller when in board mode
+    if (UBApplication::boardController)
+    {
+        const int key = event->key();
+        const bool noMod = (event->modifiers() == Qt::NoModifier || event->modifiers() == Qt::KeypadModifier);
+        if (noMod)
+        {
+            if (key == Qt::Key_Left || key == Qt::Key_Up || key == Qt::Key_PageUp)
+            {
+                UBApplication::boardController->previousScene();
+                event->accept();
+                return;
+            }
+            if (key == Qt::Key_Right || key == Qt::Key_Down || key == Qt::Key_PageDown || key == Qt::Key_Space)
+            {
+                UBApplication::boardController->nextScene();
+                event->accept();
+                return;
+            }
+        }
+    }
     QMainWindow::keyPressEvent(event);
 }
 
