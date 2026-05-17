@@ -81,6 +81,7 @@ private:
 
     // Panel collapse / expand state.
     QPushButton* mPanelCollapseBtn{nullptr};
+    QLabel*      mPresenterPanelTitleLbl{nullptr};
     int          mPresenterPanelLastWidth{260};
     bool         mPresenterPanelCollapsed{false};
 

@@ -44,7 +44,7 @@ UBRightPalette::UBRightPalette(QWidget *parent, const char *name):
     setObjectName(name);
     setOrientation(eUBDockOrientation_Right);
     setMouseTracking(true);
-    mCollapseWidth = 150;
+    mCollapseWidth = 80;
     bool isCollapsed = false;
     if(mCurrentMode == eUBDockPaletteWidget_BOARD){
         mLastWidth = UBSettings::settings()->rightLibPaletteBoardModeWidth->get().toInt();

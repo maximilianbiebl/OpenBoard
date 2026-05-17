@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QLabel>
+#include <QMessageBox>
 #include <QTimer>
 #include <QComboBox>
 #include <QDockWidget>
@@ -101,6 +102,45 @@ void UBPresentationManager::setRunning(bool enabled)
 {
     if (mRunning == enabled)
         return;
+
+    // Warn when starting in duplicate / single-screen mode.
+    if (enabled && mDisplayManager)
+    {
+        const QList<QScreen*> screens = mDisplayManager->availableScreens();
+        bool isDuplicate = screens.size() < 2;
+        if (!isDuplicate && screens.size() >= 2)
+        {
+            const QRect r0 = screens.at(0) ? screens.at(0)->geometry() : QRect();
+            isDuplicate = true;
+            for (int i = 1; i < screens.size(); ++i)
+                if (screens.at(i) && screens.at(i)->geometry() != r0)
+                { isDuplicate = false; break; }
+        }
+        if (isDuplicate)
+        {
+            const int ret = QMessageBox::question(
+                mPresenterWindow,
+                tr("Nur ein Bildschirm erkannt"),
+                tr("Es wurde kein erweiterter Bildschirm erkannt. "
+                   "Die Präsentation läuft auf dem aktuellen Bildschirm.\n\n"
+                   "Für eine Zwei-Bildschirm-Präsentation wechseln Sie bitte "
+                   "in den erweiterten Anzeigemodus (Win + P → Erweitern).\n\n"
+                   "Trotzdem fortfahren?"),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No);
+            if (ret != QMessageBox::Yes)
+            {
+                // Revert the toggle button
+                if (mStartStop)
+                {
+                    QSignalBlocker blocker(mStartStop);
+                    mStartStop->setChecked(false);
+                    updateStartStopStyle();
+                }
+                return;
+            }
+        }
+    }
 
     mRunning = enabled;
 
@@ -242,11 +282,11 @@ void UBPresentationManager::createPresenterControls()
         mPanelCollapseBtn = new QPushButton(tr("◀"), titleBar);
         mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
 
-        auto* titleLbl = new QLabel(tr("Presentation"), titleBar);
-        titleLbl->setStyleSheet("font-size: 12px; font-weight: bold; color: white; background: transparent;");
+        mPresenterPanelTitleLbl = new QLabel(tr("Presentation"), titleBar);
+        mPresenterPanelTitleLbl->setStyleSheet("font-size: 12px; font-weight: bold; color: white; background: transparent;");
 
         hb->addWidget(mPanelCollapseBtn);
-        hb->addWidget(titleLbl);
+        hb->addWidget(mPresenterPanelTitleLbl);
         hb->addStretch();
 
         mPresenterPanel->setTitleBarWidget(titleBar);
@@ -560,18 +600,28 @@ void UBPresentationManager::connectPresenterControls()
                 return;
             if (!mPresenterPanelCollapsed)
             {
-                // Collapse: remember width, hide content, shrink dock.
+                // Collapse: remember width, hide content + label, force narrow width.
                 mPresenterPanelLastWidth = mPresenterPanel->width();
+                content->setMinimumWidth(0);
                 content->hide();
-                mPresenterWindow->resizeDocks({mPresenterPanel}, {28}, Qt::Horizontal);
+                if (mPresenterPanelTitleLbl)
+                    mPresenterPanelTitleLbl->hide();
+                // Force dock to a thin strip — only the arrow button remains.
+                mPresenterPanel->setMaximumWidth(32);
+                mPresenterPanel->setMinimumWidth(0);
+                mPresenterWindow->resizeDocks({mPresenterPanel}, {32}, Qt::Horizontal);
                 mPanelCollapseBtn->setText(tr("▶"));
                 mPanelCollapseBtn->setToolTip(tr("Expand panel"));
             }
             else
             {
-                // Expand: show content, restore width.
-                content->show();
+                // Expand: restore dock width, then show label + content.
+                mPresenterPanel->setMaximumWidth(QWIDGETSIZE_MAX);
                 mPresenterWindow->resizeDocks({mPresenterPanel}, {mPresenterPanelLastWidth}, Qt::Horizontal);
+                if (mPresenterPanelTitleLbl)
+                    mPresenterPanelTitleLbl->show();
+                content->setMinimumWidth(220);
+                content->show();
                 mPanelCollapseBtn->setText(tr("◀"));
                 mPanelCollapseBtn->setToolTip(tr("Collapse panel"));
             }
@@ -863,13 +913,17 @@ void UBPresentationManager::applyAudienceToolState()
         const bool canInteract = mRunning && !mAudienceFrozen
                                  && mAudienceToolState->anyInteractiveToolEnabled();
         v->setInteractive(canInteract);
-        v->setEnabled(!mAudienceFrozen);
+        // Use setUpdatesEnabled to freeze visuals; avoid setEnabled(false) because
+        // it breaks QGraphicsView re-painting after the widget is re-enabled.
         mAudienceWindow->setUpdatesEnabled(!mAudienceFrozen);
         if (!mAudienceFrozen)
         {
-            mAudienceWindow->update();
-            v->update();
-            // Force re-fit so the page content is visible immediately after unfreeze.
+            // After unfreeze: force the view to re-render all scene changes that
+            // occurred during the frozen period.
+            if (auto scene = v->scene())
+                scene->update();          // mark whole scene as dirty
+            v->update(v->rect());         // queue repaint of the view
+            v->viewport()->repaint();     // synchronous repaint so it happens immediately
             mAudienceWindow->fitPage();
         }
     }
