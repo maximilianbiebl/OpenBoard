@@ -1,0 +1,93 @@
+Anleitung: QuaZip-Library fuer OpenBoard unter Windows erstellen
+===============================================================
+
+Wichtig:
+Das Installer-Skript baut QuaZip NICHT selbst. Es erwartet eine bereits
+vorhandene QuaZip-Library im Third-Party-Verzeichnis.
+
+Vom OpenBoard qmake-Build erwartete Pfade:
+- Header: ..\OpenBoard-ThirdParty\quazip\...
+- Lib:    ..\OpenBoard-ThirdParty\quazip\lib\win32\...
+
+Akzeptierte Bibliotheksnamen:
+- quazip.lib
+- quazip1-qt6.lib
+- quazip-qt6.lib
+- quazip1-qt5.lib
+- quazip-qt5.lib
+- quazip1.lib
+
+
+1) Verzeichnisstruktur vorbereiten
+----------------------------------
+OpenBoard und OpenBoard-ThirdParty muessen nebeneinander liegen, z. B.:
+
+C:\dev\OpenBoard
+C:\dev\OpenBoard-ThirdParty
+
+Wenn OpenBoard woanders liegt, muss THIRD_PARTY_PATH in
+OpenBoard.pro angepasst werden.
+
+
+2) Entwicklerkonsole starten
+----------------------------
+- "x64 Native Tools Command Prompt for VS 2022" oeffnen
+  (oder vcvars64.bat laden).
+- Sicherstellen, dass die gleiche Qt/MSVC-Kombination verwendet wird
+  wie fuer OpenBoard (z. B. Qt 6.x msvc2022_64).
+
+
+3) QuaZip bauen (CMake + NMake)
+-------------------------------
+Beispiel mit Quellen in:
+C:\dev\OpenBoard-ThirdParty\quazip
+
+Dann in der VS-Entwicklerkonsole ausfuehren:
+
+cd /d C:\dev\OpenBoard-ThirdParty\quazip
+if not exist build mkdir build
+cd build
+
+cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+nmake
+
+Hinweise:
+- Falls CMake Qt nicht findet, QT_DIR/CMAKE_PREFIX_PATH auf dein
+  Qt-Installationsverzeichnis setzen.
+- Falls QuaZip als DLL gebaut wird, ist fuer den Linker trotzdem die
+  passende Import-Library (.lib) entscheidend.
+
+
+4) Artefakte an OpenBoard-Erwartung anpassen
+--------------------------------------------
+Sicherstellen, dass mindestens eine der oben gelisteten .lib-Dateien hier liegt:
+
+..\OpenBoard-ThirdParty\quazip\lib\win32\
+
+Wenn der Build die .lib in einem anderen Ordner erzeugt, Datei dorthin kopieren.
+Falls der Name abweicht, auf einen akzeptierten Namen umbenennen
+(oder den passenden Namen in OpenBoard.pro eintragen).
+
+
+5) OpenBoard erneut bauen
+-------------------------
+Im OpenBoard-Repository:
+
+release_scripts\windows\release.win7.vc9.bat
+
+Nur Packaging (wenn Build bereits vorhanden):
+
+release_scripts\windows\create-setup.bat
+
+
+Typische Fehler
+---------------
+- LNK1181: cannot open input file 'quazip.lib'
+  => Keine passende QuaZip-.lib in ..\OpenBoard-ThirdParty\quazip\lib\win32
+     oder falscher Dateiname.
+
+- quazip.h nicht gefunden
+  => Header fehlen unter ..\OpenBoard-ThirdParty\quazip\...
+
+- Qt nicht gefunden
+  => QT_DIR/QT_BIN/CMAKE_PREFIX_PATH fuer die verwendete Qt-Version setzen.

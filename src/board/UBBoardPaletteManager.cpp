@@ -29,6 +29,8 @@
 
 #include "UBBoardPaletteManager.h"
 
+#include <QTimer>
+
 #include "frameworks/UBPlatformUtils.h"
 #include "frameworks/UBFileSystemUtils.h"
 
@@ -244,6 +246,28 @@ void UBBoardPaletteManager::setupPalettes()
 
     mStylusPalette->stackUnder(mZoomPalette);
 
+    // Add a permanent zoom-level label at the right end of the main toolbar.
+    // A plain QLabel is used instead of embedding UBZoomPalette because the
+    // palette's own auto-hide logic fights with toolbar widget visibility.
+    // UBZoomPalette continues to work as a floating canvas overlay.
+    QTimer::singleShot(0, [this] {
+        auto* toolbar = UBApplication::mainWindow
+            ? UBApplication::mainWindow->boardToolBar : nullptr;
+        if (!toolbar) return;
+        auto* zoomLabel = new QLabel("100%", toolbar);
+        zoomLabel->setStyleSheet(
+            "QLabel { color: white; font-weight: bold; font-size: 13px;"
+            "         padding: 0 10px; background: transparent; }");
+        toolbar->addWidget(zoomLabel);
+        if (auto* bc = UBApplication::boardController)
+        {
+            QObject::connect(bc, &UBBoardController::zoomChanged,
+                             zoomLabel, [zoomLabel](qreal zoom) {
+                zoomLabel->setText(QString("%1%").arg(qRound(zoom * 100)));
+            });
+        }
+    });
+
     mTipPalette = new UBStartupHintsPalette(mContainer);
     QList<QAction*> backgroundsActions;
 
@@ -253,12 +277,14 @@ void UBBoardPaletteManager::setupPalettes()
         backgroundsActions << UBApplication::mainWindow->actionSeyesRuledLightBackground;
     else
         backgroundsActions << UBApplication::mainWindow->actionRuledLightBackground;
+    backgroundsActions << UBApplication::mainWindow->actionDottedLightBackground;
     backgroundsActions << UBApplication::mainWindow->actionPlainDarkBackground;
     backgroundsActions << UBApplication::mainWindow->actionCrossedDarkBackground;
     if(UBSettings::settings()->isSeyesRuledBackground())
         backgroundsActions << UBApplication::mainWindow->actionSeyesRuledDarkBackground;
     else
         backgroundsActions << UBApplication::mainWindow->actionRuledDarkBackground;
+    backgroundsActions << UBApplication::mainWindow->actionDottedDarkBackground;
 
     mBackgroundsPalette = new UBBackgroundPalette(backgroundsActions, mContainer);
     mBackgroundsPalette->setButtonIconSize(QSize(128, 128));
@@ -458,6 +484,8 @@ void UBBoardPaletteManager::connectPalettes()
     connect(UBApplication::mainWindow->actionCrossedDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
     connect(UBApplication::mainWindow->actionRuledDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
     connect(UBApplication::mainWindow->actionSeyesRuledDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
+    connect(UBApplication::mainWindow->actionDottedLightBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
+    connect(UBApplication::mainWindow->actionDottedDarkBackground, SIGNAL(triggered()), this, SLOT(changeBackground()));
     connect(UBApplication::mainWindow->actionPodcast, SIGNAL(triggered(bool)), this, SLOT(tooglePodcastPalette(bool)));
 
     connect(UBApplication::mainWindow->actionAddItemToCurrentPage, SIGNAL(triggered()), this, SLOT(addItemToCurrentPage()));
@@ -525,9 +553,12 @@ void UBBoardPaletteManager::containerResized()
 
     if(mZoomPalette)
     {
-        mZoomPalette->move(userLeft + userWidth - mZoomPalette->width()
-                , userTop + userHeight /*- mPageNumberPalette->height()*/ - innerMargin - mZoomPalette->height());
-        mZoomPalette->adjustSizeAndPosition();
+        if (mZoomPalette->parentWidget() == mContainer)
+        {
+            mZoomPalette->move(userLeft + userWidth - mZoomPalette->width(),
+                               userTop + userHeight - innerMargin - mZoomPalette->height());
+            mZoomPalette->adjustSizeAndPosition();
+        }
         mZoomPalette->refreshPalette();
     }
 
@@ -550,6 +581,9 @@ void UBBoardPaletteManager::changeBackground()
              UBApplication::mainWindow->actionSeyesRuledLightBackground->isChecked())
         UBApplication::boardController->changeBackground(false, UBPageBackground::ruled);
 
+    else if (UBApplication::mainWindow->actionDottedLightBackground->isChecked())
+        UBApplication::boardController->changeBackground(false, UBPageBackground::dotted);
+
     else if (UBApplication::mainWindow->actionPlainDarkBackground->isChecked())
         UBApplication::boardController->changeBackground(true, UBPageBackground::plain);
 
@@ -559,6 +593,9 @@ void UBBoardPaletteManager::changeBackground()
     else if (UBApplication::mainWindow->actionRuledDarkBackground->isChecked() ||
              UBApplication::mainWindow->actionSeyesRuledDarkBackground->isChecked())
         UBApplication::boardController->changeBackground(true, UBPageBackground::ruled);
+
+    else if (UBApplication::mainWindow->actionDottedDarkBackground->isChecked())
+        UBApplication::boardController->changeBackground(true, UBPageBackground::dotted);
 
     else
         UBApplication::boardController->changeBackground(false, UBPageBackground::plain);

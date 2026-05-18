@@ -45,6 +45,7 @@
 #include "core/UBSetting.h"
 #include "core/UBPersistenceManager.h"
 #include "core/UB.h"
+#include "core/UBAudienceToolState.h"
 
 #include "network/UBHttpGet.h"
 
@@ -64,6 +65,7 @@
 #include "desktop/UBDesktopAnnotationController.h"
 #endif
 
+#include "domain/UBGraphicsScene.h"
 #include "domain/UBGraphicsTextItem.h"
 #include "domain/UBGraphicsPixmapItem.h"
 #include "domain/UBGraphicsWidgetItem.h"
@@ -102,6 +104,7 @@ UBBoardView::UBBoardView (UBBoardController* pController, QWidget* pParent, bool
     , mMultipleSelectionIsEnabled(false)
     , bIsControl(isControl)
     , bIsDesktop(isDesktop)
+    , mAudienceMode(false)
 {
     init ();
 
@@ -127,6 +130,7 @@ UBBoardView::UBBoardView (UBBoardController* pController, int pStartLayer, int p
     , mMultipleSelectionIsEnabled(false)
     , bIsControl(isControl)
     , bIsDesktop(isDesktop)
+    , mAudienceMode(false)
 {
     init ();
 
@@ -193,6 +197,12 @@ void UBBoardView::init ()
 
     setMovingItem(NULL);
     mWidgetMoved = false;
+
+    connect(UBDrawingController::drawingController(), &UBDrawingController::stylusToolChanged,
+            this, [this](int tool, int) {
+                if (bIsControl)
+                    setToolCursor(tool);
+            });
 }
 
 std::shared_ptr<UBGraphicsScene> UBBoardView::scene ()
@@ -204,6 +214,12 @@ std::shared_ptr<UBGraphicsScene> UBBoardView::scene ()
 
 void UBBoardView::keyPressEvent (QKeyEvent *event)
 {
+    if (mAudienceMode)
+    {
+        event->ignore();
+        return;
+    }
+
     // send to the scene anyway
     QApplication::sendEvent (scene().get(), event);
 
@@ -1098,9 +1114,62 @@ void UBBoardView::longPressEvent()
 
 void UBBoardView::mousePressEvent (QMouseEvent *event)
 {
-    if (!bIsControl && !bIsDesktop) {
+    // Audience mode view is neither control nor desktop, but must still
+    // process events so the audience toolbar tools are functional.
+    if (!bIsControl && !bIsDesktop && !mAudienceMode) {
         event->ignore();
         return;
+    }
+
+    // Page-border resize: left-button drag near the right or bottom border.
+    if (event->button() == Qt::LeftButton && !mAudienceMode && bIsControl)
+    {
+        PageResizeEdge edge = detectPageResizeEdge(event->pos());
+        if (edge != PageResizeEdge::None)
+        {
+            auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+            if (currentScene)
+            {
+                mPageResizeEdge      = edge;
+                mIsResizingPage      = true;
+                mPageResizeStartScene = mapToScene(event->pos());
+                mPageResizeStartSize  = currentScene->nominalSize();
+                applyPageResizeCursor(edge);
+                event->accept();
+                return;
+            }
+        }
+    }
+
+    // Middle mouse button → pan the presenter view (not available in audience mode).
+    if (event->button() == Qt::MiddleButton && !mAudienceMode && (bIsControl || bIsDesktop))
+    {
+        mMiddleButtonIsPressed = true;
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        mMiddleButtonPressPos = event->position();
+#else
+        mMiddleButtonPressPos = event->localPos();
+#endif
+        viewport()->setCursor(Qt::ClosedHandCursor);
+        event->accept();
+        return;
+    }
+
+    if (mAudienceMode)
+    {
+        if (!audiencePointInPage(mapToScene(event->pos())))
+        {
+            event->ignore();
+            return;
+        }
+
+        int tool = UBDrawingController::drawingController()->stylusTool();
+
+        if (!audienceAllowsStylusTool(tool))
+        {
+            event->ignore();
+            return;
+        }
     }
 
     mIsDragInProgress = false;
@@ -1129,12 +1198,36 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
 
         switch (currentTool) {
         case UBStylusTool::ZoomIn :
-            mController->zoomIn (mapToScene (event->pos ()));
+            if (mAudienceMode)
+            {
+                qreal zoomFactor = UBSettings::settings()->boardZoomFactor->get().toDouble();
+                qreal current = transform().m11();
+                if (current < UB_MAX_ZOOM)
+                {
+                    scale(zoomFactor, zoomFactor);
+                }
+            }
+            else
+            {
+                mController->zoomIn (mapToScene (event->pos ()));
+            }
             event->accept();
             break;
 
         case UBStylusTool::ZoomOut :
-            mController->zoomOut (mapToScene (event->pos ()));
+            if (mAudienceMode)
+            {
+                qreal zoomFactor = UBSettings::settings()->boardZoomFactor->get().toDouble();
+                qreal current = transform().m11();
+                if (current > 0.2)
+                {
+                    scale(1 / zoomFactor, 1 / zoomFactor);
+                }
+            }
+            else
+            {
+                mController->zoomOut (mapToScene (event->pos ()));
+            }
             event->accept();
             break;
 
@@ -1163,10 +1256,14 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
             break;
 
         case UBStylusTool::Text : {
-            if (dynamic_cast<UBGraphicsTextItem*>(getMovingItem()))
+            QGraphicsItem* mi = getMovingItem();
+            // Forward to scene when clicking an existing text item or any delegate
+            // control (font/color/size buttons rendered as scene items).
+            if (dynamic_cast<UBGraphicsTextItem*>(mi)
+                    || (mi && mi->type() == UBGraphicsItemType::DelegateButtonType))
             {
                 mIsCreatingTextZone = false;
-                UBDrawingController::drawingController()->setStylusTool(UBStylusTool::Selector);
+                // Keep Text tool active — don't auto-switch to Selector.
                 QGraphicsView::mousePressEvent (event);
             }
             else
@@ -1194,6 +1291,18 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
             mIsCreatingSceneGrabZone = true;
 
             event->accept ();
+            break;
+
+        case UBStylusTool::Rectangle:
+        case UBStylusTool::Ellipse:
+            scene()->deselectAllItems();
+            if (!mRubberBand)
+                mRubberBand = new UBRubberBand(QRubberBand::Rectangle, this);
+            mRubberBand->setGeometry(QRect(mMouseDownPos, QSize()));
+            mRubberBand->show();
+            mIsCreatingShape    = true;
+            mShapeIsEllipse     = (currentTool == UBStylusTool::Ellipse);
+            event->accept();
             break;
 
         default:
@@ -1244,6 +1353,60 @@ void UBBoardView::mousePressEvent (QMouseEvent *event)
 
 void UBBoardView::mouseMoveEvent (QMouseEvent *event)
 {
+    // Page-border resize drag.
+    if (mIsResizingPage && (event->buttons() & Qt::LeftButton) && !mAudienceMode)
+    {
+        auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+        if (currentScene)
+        {
+            QPointF scenePt = mapToScene(event->pos());
+            QPointF delta = scenePt - mPageResizeStartScene;
+
+            int newW = mPageResizeStartSize.width();
+            int newH = mPageResizeStartSize.height();
+
+            if (mPageResizeEdge == PageResizeEdge::Right || mPageResizeEdge == PageResizeEdge::BottomRight)
+                newW = qMax(200, mPageResizeStartSize.width() + qRound(delta.x() * 2));
+            if (mPageResizeEdge == PageResizeEdge::Bottom || mPageResizeEdge == PageResizeEdge::BottomRight)
+                newH = qMax(200, mPageResizeStartSize.height() + qRound(delta.y() * 2));
+
+            const QSize proposedSize(newW, newH);
+            if (proposedSize != currentScene->nominalSize())
+                currentScene->setNominalSize(proposedSize);
+        }
+        applyPageResizeCursor(mPageResizeEdge);
+        event->accept();
+        return;
+    }
+
+    // Update resize cursor when hovering near the border (not dragging).
+    if (!mIsResizingPage && !mMouseButtonIsPressed && !mAudienceMode && bIsControl)
+    {
+        PageResizeEdge edge = detectPageResizeEdge(event->pos());
+        if (edge != PageResizeEdge::None)
+        {
+            applyPageResizeCursor(edge);
+            event->accept();
+            return;
+        }
+    }
+
+    // Middle mouse button → pan the view.
+    if (mMiddleButtonIsPressed && (event->buttons() & Qt::MiddleButton) && !mAudienceMode)
+    {
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+        QPointF pos = event->position();
+#else
+        QPointF pos = event->localPos();
+#endif
+        qreal dx = pos.x() - mMiddleButtonPressPos.x();
+        qreal dy = pos.y() - mMiddleButtonPressPos.y();
+        mController->handScroll(dx, dy);
+        mMiddleButtonPressPos = pos;
+        event->accept();
+        return;
+    }
+
     //    static QTime lastCallTime;
     //    if (!lastCallTime.isNull()) {
     //        qDebug() << "time interval is " << lastCallTime.msecsTo(QTime::currentTime());
@@ -1280,7 +1443,25 @@ void UBBoardView::mouseMoveEvent (QMouseEvent *event)
 #endif
         qreal dx = eventPosition.x () - mPreviousPoint.x ();
         qreal dy = eventPosition.y () - mPreviousPoint.y ();
-        mController->handScroll (dx, dy);
+        if (mAudienceMode)
+        {
+            // Pan clamped to page: center must stay within the page so
+            // the audience can never drag the slide completely off-screen.
+            QRectF page = audiencePageRect();
+            if (!page.isEmpty())
+            {
+                qreal antiScaleRatio = 1.0 / transform().m11();
+                QPointF proposed = mapToScene(viewport()->rect().center())
+                                   - QPointF(dx * antiScaleRatio, dy * antiScaleRatio);
+                proposed.setX(qBound(page.left(), proposed.x(), page.right()));
+                proposed.setY(qBound(page.top(),  proposed.y(), page.bottom()));
+                centerOn(proposed);
+            }
+        }
+        else
+        {
+            mController->handScroll (dx, dy);
+        }
         mPreviousPoint = eventPosition;
         event->accept ();
     } break;
@@ -1358,8 +1539,10 @@ void UBBoardView::mouseMoveEvent (QMouseEvent *event)
     } break;
 
     case UBStylusTool::Text :
-    case UBStylusTool::Capture : {
-        if (mRubberBand && (mIsCreatingTextZone || mIsCreatingSceneGrabZone)) {
+    case UBStylusTool::Capture :
+    case UBStylusTool::Rectangle :
+    case UBStylusTool::Ellipse : {
+        if (mRubberBand && (mIsCreatingTextZone || mIsCreatingSceneGrabZone || mIsCreatingShape)) {
             mRubberBand->setGeometry(QRect(mMouseDownPos, event->pos()).normalized());
             event->accept();
         }
@@ -1387,6 +1570,35 @@ void UBBoardView::movingItemDestroyed(QObject*)
 
 void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
 {
+    // Commit page resize.
+    if (event->button() == Qt::LeftButton && mIsResizingPage)
+    {
+        mIsResizingPage = false;
+        auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+        if (currentScene && mController)
+        {
+            QSize finalSize = currentScene->nominalSize();
+            if (finalSize != mPageResizeStartSize)
+            {
+                // Restore old size first so the undo command captures the correct delta.
+                currentScene->setNominalSize(mPageResizeStartSize);
+                mController->setPageSize(finalSize);
+            }
+        }
+        mPageResizeEdge = PageResizeEdge::None;
+        setToolCursor(UBDrawingController::drawingController()->stylusTool());
+        event->accept();
+        return;
+    }
+
+    if (event->button() == Qt::MiddleButton && mMiddleButtonIsPressed)
+    {
+        mMiddleButtonIsPressed = false;
+        setToolCursor(UBDrawingController::drawingController()->stylusTool());
+        event->accept();
+        return;
+    }
+
     UBStylusTool::Enum currentTool = (UBStylusTool::Enum)UBDrawingController::drawingController ()->stylusTool ();
 
     setToolCursor (currentTool);
@@ -1511,8 +1723,7 @@ void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
                 UBGraphicsTextItem* textItem = scene()->addTextHtml ("", mapToScene (rubberRect.topLeft ()));
                 event->accept ();
 
-                UBDrawingController::drawingController ()->setStylusTool (UBStylusTool::Selector);
-
+                // Keep Text tool active — don't auto-switch to Selector.
                 textItem->setTextInteractionFlags(Qt::TextEditorInteraction);
                 textItem->setSelected(true);
 
@@ -1608,6 +1819,25 @@ void UBBoardView::mouseReleaseEvent (QMouseEvent *event)
         }
         QGraphicsView::mouseReleaseEvent (event);
     }
+    else if (currentTool == UBStylusTool::Rectangle || currentTool == UBStylusTool::Ellipse)
+    {
+        if (mIsCreatingShape && scene() && mRubberBand
+                && mRubberBand->geometry().width()  > 4
+                && mRubberBand->geometry().height() > 4)
+        {
+            QRect viewRect = mRubberBand->geometry();
+            QRectF sceneRect(mapToScene(viewRect.topLeft()),
+                             mapToScene(viewRect.bottomRight()));
+
+            auto* dc = UBDrawingController::drawingController();
+            QColor color    = dc->currentToolColor();
+            qreal lineWidth = dc->currentToolWidth();
+
+            scene()->addShape(sceneRect, mShapeIsEllipse, color, lineWidth);
+            event->accept();
+        }
+        mIsCreatingShape = false;
+    }
     else if (currentTool == UBStylusTool::Capture)
     {
 
@@ -1695,14 +1925,44 @@ void UBBoardView::wheelEvent (QWheelEvent *wheelEvent)
     // Zoom in/out when Ctrl is pressed
     if (wheelEvent->modifiers() == Qt::ControlModifier && wheelEvent->angleDelta().x() == 0)
     {
+        if (mAudienceMode && !audienceAllowsStylusTool(UBStylusTool::ZoomIn))
+        {
+            wheelEvent->accept();
+            return;
+        }
+
         qreal angle = wheelEvent->angleDelta().y();
         qreal zoomBase = UBSettings::settings()->boardZoomBase->get().toDouble();
         qreal zoomFactor = qPow(zoomBase, angle);
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-        mController->zoom(zoomFactor, mapToScene(wheelEvent->position().toPoint()));
+        QPointF scenePoint = mapToScene(wheelEvent->position().toPoint());
 #else
-        mController->zoom(zoomFactor, mapToScene(wheelEvent->pos()));
+        QPointF scenePoint = mapToScene(wheelEvent->pos());
 #endif
+        if (mAudienceMode)
+        {
+            QRectF page = audiencePageRect();
+            scale(zoomFactor, zoomFactor);
+
+            // Clamp the zoom pivot to the page and prevent zooming out
+            // so far that backstage area becomes visible.
+            if (!page.isEmpty())
+            {
+                QPointF pivot = scenePoint;
+                pivot.setX(qBound(page.left(), pivot.x(), page.right()));
+                pivot.setY(qBound(page.top(),  pivot.y(), page.bottom()));
+                centerOn(pivot);
+
+                // If the visible area now exceeds the page, fit back to page.
+                QRectF visible = mapToScene(viewport()->rect()).boundingRect();
+                if (visible.width() > page.width() || visible.height() > page.height())
+                    fitInView(page, Qt::KeepAspectRatio);
+            }
+        }
+        else
+        {
+            mController->zoom(zoomFactor, scenePoint);
+        }
         wheelEvent->accept();
         return;
     }
@@ -1747,7 +2007,10 @@ void UBBoardView::wheelEvent (QWheelEvent *wheelEvent)
     setForegroundBrush(foregroundBrush());
 #endif
 
-    UBApplication::applicationController->adjustDisplayView();
+    if (!mAudienceMode)
+    {
+        UBApplication::applicationController->adjustDisplayView();
+    }
 }
 
 void UBBoardView::leaveEvent (QEvent * event)
@@ -1757,11 +2020,21 @@ void UBBoardView::leaveEvent (QEvent * event)
 
     mJustSelectedItems.clear();
 
+    // Reset resize cursor when leaving the view.
+    if (!mAudienceMode && bIsControl && !mIsResizingPage)
+        setToolCursor(UBDrawingController::drawingController()->stylusTool());
+
     QGraphicsView::leaveEvent (event);
 }
 
 void UBBoardView::drawItems (QPainter *painter, int numItems, QGraphicsItem* items[], const QStyleOptionGraphicsItem options[])
 {
+    if (mAudienceMode)
+    {
+        painter->save();
+        painter->setClipRect(audiencePageRect());
+    }
+
     if (!mFilterZIndex)
         QGraphicsView::drawItems (painter, numItems, items, options);
     else
@@ -1785,6 +2058,11 @@ void UBBoardView::drawItems (QPainter *painter, int numItems, QGraphicsItem* ite
 
         delete[] optionsFiltered;
         delete[] itemsFiltered;
+    }
+
+    if (mAudienceMode)
+    {
+        painter->restore();
     }
 }
 
@@ -1873,8 +2151,19 @@ void UBBoardView::paintEvent(QPaintEvent *event)
 
 void UBBoardView::drawBackground (QPainter *painter, const QRectF &rect)
 {
+    if (mAudienceMode)
+    {
+        painter->save();
+        painter->setClipRect(audiencePageRect());
+    }
+
     // draw the background of the QGraphicsScene
     QGraphicsView::drawBackground(painter, rect);
+
+    if (mAudienceMode)
+    {
+        painter->restore();
+    }
 
     if (testAttribute (Qt::WA_TranslucentBackground))
     {
@@ -1911,6 +2200,41 @@ void UBBoardView::drawBackground (QPainter *painter, const QRectF &rect)
 
 void UBBoardView::drawForeground(QPainter* painter, const QRectF& rect)
 {
+    if (mAudienceMode)
+    {
+        QRectF visible = mapToScene(QRect(0, 0, viewport()->width(), viewport()->height())).boundingRect();
+        QRectF pageRect = audiencePageRect();
+
+        painter->save();
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(QColor(Qt::black));
+
+        if (visible.left() < pageRect.left())
+        {
+            painter->drawRect(QRectF(visible.left(), visible.top(),
+                                     pageRect.left() - visible.left(), visible.height()));
+        }
+        if (visible.right() > pageRect.right())
+        {
+            painter->drawRect(QRectF(pageRect.right(), visible.top(),
+                                     visible.right() - pageRect.right(), visible.height()));
+        }
+        // Use full visible width so corners are always covered,
+        // even when only a top/bottom strip but not left/right strips are drawn.
+        if (visible.top() < pageRect.top())
+        {
+            painter->drawRect(QRectF(visible.left(), visible.top(),
+                                     visible.width(), pageRect.top() - visible.top()));
+        }
+        if (visible.bottom() > pageRect.bottom())
+        {
+            painter->drawRect(QRectF(visible.left(), pageRect.bottom(),
+                                     visible.width(), visible.bottom() - pageRect.bottom()));
+        }
+
+        painter->restore();
+    }
+
     QTransform transform{viewportTransform()};
     QRect viewportRect(0, 0, viewport()->width(), viewport()->height());
     QRectF visible{mapToScene(viewportRect).boundingRect()};
@@ -1973,6 +2297,97 @@ void UBBoardView::settingChanged (QVariant newValue)
     mUseHighResTabletEvent = UBSettings::settings ()->boardUseHighResTabletEvent->get ().toBool ();
 }
 
+void UBBoardView::setAudienceMode(bool enabled)
+{
+    mAudienceMode = enabled;
+    viewport()->update();
+}
+
+void UBBoardView::setAudienceToolState(UBAudienceToolState* toolState)
+{
+    mAudienceToolState = toolState;
+}
+
+QRectF UBBoardView::audiencePageRect() const
+{
+    auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+
+    if (!currentScene)
+    {
+        return QRectF{};
+    }
+
+    const QSize size = currentScene->nominalSize();
+    return QRectF(size.width() / -2.0, size.height() / -2.0, size.width(), size.height());
+}
+
+bool UBBoardView::audienceAllowsStylusTool(int tool) const
+{
+    if (!mAudienceMode || !mAudienceToolState)
+    {
+        return true;
+    }
+
+    return mAudienceToolState->isStylusToolEnabled(tool);
+}
+
+bool UBBoardView::audiencePointInPage(const QPointF& point) const
+{
+    if (!mAudienceMode)
+    {
+        return true;
+    }
+
+    return audiencePageRect().contains(point);
+}
+
+// ---------------------------------------------------------------------------
+// Page-border resize helpers (presenter/control view only)
+// ---------------------------------------------------------------------------
+
+UBBoardView::PageResizeEdge UBBoardView::detectPageResizeEdge(const QPoint& viewPos) const
+{
+    if (mAudienceMode || !bIsControl)
+        return PageResizeEdge::None;
+
+    auto currentScene = dynamic_cast<UBGraphicsScene*>(QGraphicsView::scene());
+    if (!currentScene)
+        return PageResizeEdge::None;
+
+    const QSize sz = currentScene->nominalSize();
+    if (sz.isEmpty())
+        return PageResizeEdge::None;
+
+    // Page border in view coordinates — use the half-size corner points.
+    QPoint brView = mapFromScene(QPointF(sz.width() / 2.0, sz.height() / 2.0));
+
+    // Detection threshold: 12 view pixels from the border line.
+    const int T = 12;
+
+    bool nearRight  = qAbs(viewPos.x() - brView.x()) <= T && viewPos.y() < brView.y() + T;
+    bool nearBottom = qAbs(viewPos.y() - brView.y()) <= T && viewPos.x() < brView.x() + T;
+
+    if (nearRight && nearBottom)
+        return PageResizeEdge::BottomRight;
+    if (nearRight)
+        return PageResizeEdge::Right;
+    if (nearBottom)
+        return PageResizeEdge::Bottom;
+
+    return PageResizeEdge::None;
+}
+
+void UBBoardView::applyPageResizeCursor(PageResizeEdge edge)
+{
+    switch (edge)
+    {
+        case PageResizeEdge::Right:       viewport()->setCursor(Qt::SizeHorCursor); break;
+        case PageResizeEdge::Bottom:      viewport()->setCursor(Qt::SizeVerCursor); break;
+        case PageResizeEdge::BottomRight: viewport()->setCursor(Qt::SizeFDiagCursor); break;
+        default:                          break;
+    }
+}
+
 void UBBoardView::virtualKeyboardActivated(bool b)
 {
     UBPlatformUtils::setWindowNonActivableFlag(this, b);
@@ -2002,7 +2417,9 @@ void UBBoardView::setToolCursor (int tool)
         controlViewport->setCursor (UBResources::resources ()->penCursor);
         break;
     case UBStylusTool::Eraser:
-        controlViewport->setCursor (UBResources::resources ()->eraserCursor);
+        // The eraser circle in the scene already shows the cursor position;
+        // hiding the OS cursor prevents a double-indicator.
+        controlViewport->setCursor(Qt::BlankCursor);
         break;
     case UBStylusTool::Marker:
         controlViewport->setCursor (UBResources::resources ()->markerCursor);
@@ -2032,7 +2449,11 @@ void UBBoardView::setToolCursor (int tool)
         controlViewport->setCursor (UBResources::resources ()->textCursor);
         break;
     case UBStylusTool::Capture:
-        controlViewport->setCursor (UBResources::resources ()->penCursor);
+        controlViewport->setCursor(UBResources::resources()->penCursor);
+        break;
+    case UBStylusTool::Rectangle:
+    case UBStylusTool::Ellipse:
+        controlViewport->setCursor(Qt::CrossCursor);
         break;
     default:
         Q_ASSERT (false);

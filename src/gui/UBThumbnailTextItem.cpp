@@ -22,7 +22,12 @@
 
 #include "UBThumbnailTextItem.h"
 
+#include <QFocusEvent>
 #include <QFontMetricsF>
+#include <QKeyEvent>
+#include <QPainter>
+#include <QPen>
+#include <QTextCursor>
 #include <QTextDocument>
 #include <QTextOption>
 
@@ -86,4 +91,51 @@ void UBThumbnailTextItem::computeText()
     QFontMetricsF fm(font());
     QString elidedText = fm.elidedText(mUnelidedText, Qt::ElideLeft, mWidth - 2 * document()->documentMargin() - 1);
     setPlainText(elidedText);
+}
+
+void UBThumbnailTextItem::setEditMode(bool editing)
+{
+    mIsEditing = editing;
+    update();
+}
+
+void UBThumbnailTextItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
+{
+    if (mIsEditing)
+    {
+        painter->save();
+        painter->setPen(QPen(QColor("#0078d4"), 2)); // blue border like Windows input
+        painter->setBrush(Qt::white);
+        painter->drawRect(boundingRect().adjusted(0, 0, -1, -1));
+        painter->restore();
+    }
+    QGraphicsTextItem::paint(painter, option, widget);
+}
+
+void UBThumbnailTextItem::focusOutEvent(QFocusEvent* event)
+{
+    setTextInteractionFlags(Qt::NoTextInteraction);
+    setEditMode(false);
+    emit editingFinished(toPlainText());
+    QGraphicsTextItem::focusOutEvent(event);
+}
+
+void UBThumbnailTextItem::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+    {
+        // clearFocus() triggers focusOutEvent → editingFinished
+        clearFocus();
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Escape)
+    {
+        setEditMode(false);
+        setTextInteractionFlags(Qt::NoTextInteraction);
+        clearFocus();
+        event->accept();
+        return;
+    }
+    QGraphicsTextItem::keyPressEvent(event);
 }

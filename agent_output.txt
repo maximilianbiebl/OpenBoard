@@ -1,0 +1,50 @@
+Persistente Antwort zur aktuellen QuaZip-Installation
+
+Anforderung bestaetigt: Ich halte die Antwort im Repo als TXT fest.
+Datei: /home/runner/work/OpenBoard/OpenBoard/agent_output.txt
+
+Dein aktueller Fehler ist eindeutig:
+- "The source directory .../quazip does not appear to contain CMakeLists.txt"
+- Danach findet nmake folgerichtig kein Makefile (U1064).
+
+Das bedeutet:
+Du bist im falschen QuaZip-Quellordner ODER hast ein falsches/unvollstaendiges QuaZip-Paket.
+
+Was du jetzt konkret pruefen musst (Windows, Developer Prompt):
+1) Inhalt pruefen
+   cd /d C:\Users\Maximilian\Documents\GitHub\OpenBoard-ThirdParty\quazip
+   dir
+   -> Es MUSS eine CMakeLists.txt im Root liegen, sonst kann cmake .. nicht funktionieren.
+
+2) Falls keine CMakeLists.txt da ist
+   - QuaZip-Quellen neu/korrekt holen (vollstaendiges QuaZip-Projekt, nicht nur Teilordner).
+   - Ziel bleibt: C:\Users\Maximilian\Documents\GitHub\OpenBoard-ThirdParty\quazip\CMakeLists.txt vorhanden.
+
+3) Dann neu bauen
+   cd /d C:\Users\Maximilian\Documents\GitHub\OpenBoard-ThirdParty\quazip
+   if not exist build mkdir build
+   cd build
+   cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+   nmake
+
+4) Ergebnis fuer OpenBoard korrekt ablegen
+   Erwarteter Lib-Ordner:
+   ..\OpenBoard-ThirdParty\quazip\lib\win32\
+
+   Akzeptierte Dateinamen:
+   - quazip.lib
+   - quazip1-qt6.lib
+   - quazip-qt6.lib
+   - quazip1-qt5.lib
+   - quazip-qt5.lib
+   - quazip1.lib
+
+5) Wichtiger Zusatz
+   In OpenBoard.pro ist THIRD_PARTY_PATH standardmaessig:
+   ../OpenBoard-ThirdParty
+   Wenn dein OpenBoard/OpenBoard-ThirdParty nicht genau so nebeneinander liegt,
+   zeigt der Build auf den falschen Ort und findet QuaZip trotz Build nicht.
+
+Kurzfazit:
+Dein aktuelles Problem ist VOR dem Linken: Es fehlt die CMakeLists.txt in deinem QuaZip-Source-Ordner.
+Erst wenn das korrigiert ist, erzeugt cmake/nmake ueberhaupt die benoetigte .lib fuer OpenBoard.

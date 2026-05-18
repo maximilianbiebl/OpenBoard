@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
         argc++;
     }
 
-    UBApplication app("OpenBoard", argc, argv);
+    UBApplication app("BoardPresenter", argc, argv);
 
     QStringList args = app.arguments();
 

@@ -481,6 +481,7 @@ void UBSvgSubsetAdaptor::UBSvgSubsetReader::processElement()
             bool darkBackground = false;
             bool crossedBackground = false;
             bool ruledBackground = false;
+            bool dottedBackground = false;
 
             auto ubDarkBackground = mXmlReader.attributes().value(mNamespaceUri, "dark-background");
 
@@ -491,6 +492,11 @@ void UBSvgSubsetAdaptor::UBSvgSubsetReader::processElement()
 
             if (!ubCrossedBackground.isNull())
                 crossedBackground = (ubCrossedBackground.toString() == xmlTrue);
+
+            auto ubDottedBackground = mXmlReader.attributes().value(mNamespaceUri, "dotted-background");
+
+            if (!ubDottedBackground.isNull())
+                dottedBackground = (ubDottedBackground.toString() == xmlTrue);
 
             auto ubGridSize = mXmlReader.attributes().value(mNamespaceUri, "grid-size");
 
@@ -532,6 +538,8 @@ void UBSvgSubsetAdaptor::UBSvgSubsetReader::processElement()
                 bg = UBPageBackground::crossed;
             else if (ruledBackground)
                 bg = UBPageBackground::ruled;
+            else if (dottedBackground)
+                bg = UBPageBackground::dotted;
             else
                 bg = UBPageBackground::plain;
 
@@ -1220,10 +1228,12 @@ void UBSvgSubsetAdaptor::UBSvgSubsetWriter::writeSvgElement(std::shared_ptr<UBDo
     mXmlWriter.writeAttribute(UBSettings::uniboardDocumentNamespaceUri, "dark-background", mScene->isDarkBackground() ? xmlTrue : xmlFalse);
 
     bool crossedBackground = mScene->pageBackground() == UBPageBackground::crossed;
-    bool ruledBackground = mScene->pageBackground() == UBPageBackground::ruled;
+    bool ruledBackground   = mScene->pageBackground() == UBPageBackground::ruled;
+    bool dottedBackground  = mScene->pageBackground() == UBPageBackground::dotted;
 
     mXmlWriter.writeAttribute(UBSettings::uniboardDocumentNamespaceUri, "crossed-background", crossedBackground ? xmlTrue : xmlFalse);
     mXmlWriter.writeAttribute(UBSettings::uniboardDocumentNamespaceUri, "ruled-background", ruledBackground ? xmlTrue : xmlFalse);
+    mXmlWriter.writeAttribute(UBSettings::uniboardDocumentNamespaceUri, "dotted-background", dottedBackground ? xmlTrue : xmlFalse);
 
     int gridSize = mScene->backgroundGridSize();
     mXmlWriter.writeAttribute(UBSettings::uniboardDocumentNamespaceUri, "grid-size", QString::number(gridSize));

@@ -11,11 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>OpenBoard</string>
+   <string>BoardPresenter</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../OpenBoard.qrc">
-    <normaloff>:/images/OpenBoard.png</normaloff>:/images/OpenBoard.png</iconset>
+    <normaloff>:/images/boardpresenter.svg</normaloff>:/images/boardpresenter.svg</iconset>
   </property>
   <property name="iconSize">
    <size>
@@ -1030,6 +1030,18 @@
     <string>Multi Screen</string>
    </property>
   </action>
+  <action name="actionStartPresentation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/toolbar/display.png</normaloff>:/images/toolbar/display.png</iconset>
+   </property>
+   <property name="text">
+    <string>Start Presentation</string>
+   </property>
+  </action>
   <action name="actionWidePageSize">
    <property name="checkable">
     <bool>true</bool>
@@ -1338,6 +1350,44 @@
     <string>Seyes ruled Dark Background</string>
    </property>
   </action>
+  <action name="actionDottedLightBackground">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/backgroundPalette/background9.svg</normaloff>
+     <normalon>:/images/backgroundPalette/background9On.svg</normalon>:/images/backgroundPalette/background9.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Dotted Light Background</string>
+   </property>
+   <property name="iconText">
+    <string>Light</string>
+   </property>
+   <property name="toolTip">
+    <string>Dotted Light Background</string>
+   </property>
+  </action>
+  <action name="actionDottedDarkBackground">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/backgroundPalette/background10.svg</normaloff>
+     <normalon>:/images/backgroundPalette/background10On.svg</normalon>:/images/backgroundPalette/background10.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Dotted Dark Background</string>
+   </property>
+   <property name="iconText">
+    <string>Dark</string>
+   </property>
+   <property name="toolTip">
+    <string>Dotted Dark Background</string>
+   </property>
+  </action>
   <action name="actionPodcast">
    <property name="checkable">
     <bool>true</bool>
@@ -1571,6 +1621,44 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+J</string>
+   </property>
+  </action>
+  <action name="actionRectangle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/stylusPalette/rectangle.svg</normaloff>
+     <normalon>:/images/stylusPalette/rectangleOn.svg</normalon>:/images/stylusPalette/rectangle.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Rectangle</string>
+   </property>
+   <property name="toolTip">
+    <string>Draw Rectangle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionEllipse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../OpenBoard.qrc">
+     <normaloff>:/images/stylusPalette/ellipse.svg</normaloff>
+     <normalon>:/images/stylusPalette/ellipseOn.svg</normalon>:/images/stylusPalette/ellipse.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Ellipse</string>
+   </property>
+   <property name="toolTip">
+    <string>Draw Ellipse / Circle</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
   <action name="actionText">

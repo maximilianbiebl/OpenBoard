@@ -143,6 +143,10 @@
         <file>images/stylusPalette/penOn.png</file>
         <file>images/stylusPalette/line.png</file>
         <file>images/stylusPalette/lineOn.png</file>
+        <file>images/stylusPalette/rectangle.svg</file>
+        <file>images/stylusPalette/rectangleOn.svg</file>
+        <file>images/stylusPalette/ellipse.svg</file>
+        <file>images/stylusPalette/ellipseOn.svg</file>
         <file>images/stylusPalette/zoomOut.png</file>
         <file>images/stylusPalette/zoomOutOn.png</file>
         <file>images/stylusPalette/zoomIn.png</file>
@@ -170,6 +174,10 @@
         <file>images/backgroundPalette/background7On.svg</file>
         <file>images/backgroundPalette/background8.svg</file>
         <file>images/backgroundPalette/background8On.svg</file>
+        <file>images/backgroundPalette/background9.svg</file>
+        <file>images/backgroundPalette/background9On.svg</file>
+        <file>images/backgroundPalette/background10.svg</file>
+        <file>images/backgroundPalette/background10On.svg</file>
         <file>images/toolPalette/podcast.svg</file>
         <file>images/toolPalette/podcastOn.svg</file>
         <file>images/toolPalette/rulerTool.png</file>
@@ -342,6 +350,8 @@
         <file>images/cache_open.png</file>
         <file>images/cache_circle.png</file>
         <file>images/cache_square.png</file>
+        <file>images/check.svg</file>
+        <file>images/boardpresenter.svg</file>
         <file>images/down_arrow.png</file>
         <file>images/up_arrow.png</file>
         <file>images/left_arrow.png</file>

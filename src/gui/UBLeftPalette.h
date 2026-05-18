@@ -45,7 +45,7 @@ public slots:
 
 protected:
     void updateMaxWidth();
-    void resizeEvent(QResizeEvent *event);
+    void resizeEvent(QResizeEvent *event) override;
 };
 
 #endif // UBLEFTPALETTE_H

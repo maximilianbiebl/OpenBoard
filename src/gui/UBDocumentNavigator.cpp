@@ -27,6 +27,7 @@
 
 
 
+#include <QInputDialog>
 #include <QList>
 #include <QPointF>
 #include <QPixmap>
@@ -169,7 +170,8 @@ void UBDocumentNavigator::generateThumbnails(UBDocumentContainer* source)
 
                 UBSceneThumbnailNavigPixmap* pixmapItem = new UBSceneThumbnailNavigPixmap(*pix, source->selectedDocument(), i);
 
-                QString label = tr("Page %0").arg(pageIndex);
+                QString customName = UBApplication::boardController->pageName(i);
+                QString label = customName.isEmpty() ? tr("Page %0").arg(pageIndex) : customName;
                 UBThumbnailTextItem *labelItem = new UBThumbnailTextItem(label);
 
                 UBImgTextThumbnailElement thumbWithText(pixmapItem, labelItem);
@@ -258,7 +260,11 @@ void UBDocumentNavigator::removeThumbnail(int index)
     for (int i=0; i < mThumbsWithLabels.length(); i++)
     {
         mThumbsWithLabels.at(i).getThumbnail()->setSceneIndex(i);
-        mThumbsWithLabels.at(i).getCaption()->setText(tr("Page %0").arg(i+1));
+        QString customName = UBApplication::boardController->pageName(i);
+        if (customName.isEmpty())
+            mThumbsWithLabels.at(i).getCaption()->setPageNumber(i+1);
+        else
+            mThumbsWithLabels.at(i).getCaption()->setText(customName);
     }
 
     refreshScene();
@@ -269,7 +275,8 @@ void UBDocumentNavigator::insertThumbnail(int index)
     auto pix = UBApplication::boardController->pageAt(index);
     UBSceneThumbnailNavigPixmap* pixmapItem = new UBSceneThumbnailNavigPixmap(*pix, UBApplication::boardController->selectedDocument(), index);
 
-    QString label = tr("Page %0").arg(index+1);
+    QString customName = UBApplication::boardController->pageName(index);
+    QString label = customName.isEmpty() ? tr("Page %0").arg(index+1) : customName;
     UBThumbnailTextItem *labelItem = new UBThumbnailTextItem(label);
     labelItem->setWidth(mThumbnailWidth);
 
@@ -288,7 +295,11 @@ void UBDocumentNavigator::insertThumbnail(int index)
     for (int i=0; i < mThumbsWithLabels.size(); i++)
     {
         mThumbsWithLabels.at(i).getThumbnail()->setSceneIndex(i);
-        mThumbsWithLabels.at(i).getCaption()->setPageNumber(i+1);
+        QString cn = UBApplication::boardController->pageName(i);
+        if (cn.isEmpty())
+            mThumbsWithLabels.at(i).getCaption()->setPageNumber(i+1);
+        else
+            mThumbsWithLabels.at(i).getCaption()->setText(cn);
     }
 
     mScene->addItem(pixmapItem);
@@ -402,6 +413,43 @@ void UBDocumentNavigator::mousePressEvent(QMouseEvent *event)
 
         mLongPressTimer.start();
     }
+}
+
+void UBDocumentNavigator::mouseDoubleClickEvent(QMouseEvent* event)
+{
+    QGraphicsItem* item = itemAt(event->pos());
+    UBThumbnailTextItem* textItem = dynamic_cast<UBThumbnailTextItem*>(item);
+    if (!textItem)
+        return;
+
+    // Find which page index this label belongs to.
+    int pageIndex = -1;
+    for (int i = 0; i < mThumbsWithLabels.size(); ++i)
+    {
+        if (mThumbsWithLabels.at(i).getCaption() == textItem)
+        {
+            pageIndex = i;
+            break;
+        }
+    }
+    if (pageIndex < 0)
+        return;
+
+    bool ok = false;
+    QString current = UBApplication::boardController->pageName(pageIndex);
+    QString name = QInputDialog::getText(this, tr("Rename Page"),
+                                         tr("Page name (leave empty for default):"),
+                                         QLineEdit::Normal, current, &ok);
+    if (!ok)
+        return;
+
+    UBApplication::boardController->setPageName(pageIndex, name);
+
+    // Update the label immediately.
+    if (name.isEmpty())
+        textItem->setPageNumber(pageIndex + 1);
+    else
+        textItem->setText(name);
 }
 
 void UBDocumentNavigator::clearSelection()
@@ -689,7 +737,11 @@ void UBDocumentNavigator::moveThumbnail(int from, int to)
     for (int i=0; i < mThumbsWithLabels.size(); i++)
     {
         mThumbsWithLabels.at(i).getThumbnail()->setSceneIndex(i);
-        mThumbsWithLabels.at(i).getCaption()->setPageNumber(i+1);
+        QString cn2 = UBApplication::boardController->pageName(i);
+        if (cn2.isEmpty())
+            mThumbsWithLabels.at(i).getCaption()->setPageNumber(i+1);
+        else
+            mThumbsWithLabels.at(i).getCaption()->setText(cn2);
     }
 
     refreshScene();

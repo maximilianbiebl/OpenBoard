@@ -105,7 +105,7 @@ UBApplication::UBApplication(const QString &id, int &argc, char **argv) : Single
 
     setOrganizationName("Open Education Foundation");
     setOrganizationDomain("oe-f.org");
-    setApplicationName("OpenBoard");
+    setApplicationName("BoardPresenter");
 
 #ifdef Q_OS_OSX
     // With Qt 6.9 on macOS 15 (at least), icons aren't shown in menus. This forces their display.
@@ -143,7 +143,7 @@ UBApplication::UBApplication(const QString &id, int &argc, char **argv) : Single
     updateProtoActionsState();
 
 #ifndef Q_OS_OSX
-    setWindowIcon(QIcon(":/images/OpenBoard.png"));
+    setWindowIcon(QIcon(":/images/boardpresenter.svg"));
 #endif
 
     setStyle("fusion");
@@ -391,6 +391,7 @@ int UBApplication::exec(const QString& pFileToImport)
     bool bUseMultiScreen = UBSettings::settings()->appUseMultiscreen->get().toBool();
     mainWindow->actionMultiScreen->setChecked(bUseMultiScreen);
     connect(mainWindow->actionMultiScreen, SIGNAL(triggered(bool)), applicationController, SLOT(useMultiScreen(bool)));
+    connect(mainWindow->actionStartPresentation, SIGNAL(triggered(bool)), applicationController, SLOT(setPresentationEnabled(bool)));
     connect(mainWindow->actionWidePageSize, SIGNAL(triggered(bool)), boardController, SLOT(setWidePageSize(bool)));
     connect(mainWindow->actionRegularPageSize, SIGNAL(triggered(bool)), boardController, SLOT(setRegularPageSize(bool)));
 
@@ -591,6 +592,7 @@ void UBApplication::decorateActionMenu(QAction* action)
             menu->addSeparator();
             menu->addAction(mainWindow->actionPreferences);
             menu->addAction(mainWindow->actionMultiScreen);
+            menu->addAction(mainWindow->actionStartPresentation);
             if (!UBSettings::settings()->appHideCheckForSoftwareUpdate->get().toBool())
                 menu->addAction(mainWindow->actionCheckUpdate);
             menu->addSeparator();

@@ -1,7 +1,7 @@
-TARGET = "OpenBoard"
+TARGET = "BoardPresenter"
 TEMPLATE = app
 
-CONFIG += c++17
+CONFIG += c++20
 CONFIG -= flat
 CONFIG += debug_and_release \
           no_include_pwd
@@ -118,11 +118,56 @@ win32 {
    LIBS += -lOle32
 
    THIRD_PARTY_PATH=../OpenBoard-ThirdParty
-   include($$THIRD_PARTY_PATH/libs.pri)
+
+   # Include general third-party config if available (may provide poppler, etc.)
+   exists($$THIRD_PARTY_PATH/libs.pri) {
+      include($$THIRD_PARTY_PATH/libs.pri)
+   }
+
+   # Poppler: explicit Windows config pointing at ThirdParty structure.
+   # Expected layout: ../OpenBoard-ThirdParty/poppler/{include,lib,bin}
+   POPPLER_PATH = $$THIRD_PARTY_PATH/poppler
+   exists($$POPPLER_PATH/include) {
+      INCLUDEPATH += $$POPPLER_PATH/include
+   }
+   # Use explicit full-path lib references so the ThirdParty libs (oschwartz10612)
+   # take precedence over any vcpkg-installed poppler that may have a different ABI.
+   exists($$POPPLER_PATH/lib/poppler.lib) {
+      LIBS += $$POPPLER_PATH/lib/poppler.lib
+   } else {
+      LIBS += -lpoppler
+   }
+   exists($$POPPLER_PATH/lib/poppler-cpp.lib) {
+      LIBS += $$POPPLER_PATH/lib/poppler-cpp.lib
+   } else {
+      LIBS += -lpoppler-cpp
+   }
 
    DEPENDPATH += $$THIRD_PARTY_PATH/quazip/
+   # QuaZip headers may be flat (quazip/) or in a subdir (quazip/quazip/) — add both
    INCLUDEPATH += $$THIRD_PARTY_PATH/quazip/
-   include($$THIRD_PARTY_PATH/quazip/quazip.pri)
+   INCLUDEPATH += $$THIRD_PARTY_PATH/quazip/quazip/
+   exists($$THIRD_PARTY_PATH/quazip/quazip.pri) {
+      include($$THIRD_PARTY_PATH/quazip/quazip.pri)
+   }
+   QUAZIP_LIB_DIR = $$THIRD_PARTY_PATH/quazip/lib/win32
+   exists($$QUAZIP_LIB_DIR) {
+      LIBS += -L$$QUAZIP_LIB_DIR
+      exists($$QUAZIP_LIB_DIR/quazip.lib) {
+         LIBS += -lquazip
+      } else {
+         QUAZIP_FALLBACK_LIB =
+         exists($$QUAZIP_LIB_DIR/quazip1-qt6.lib):QUAZIP_FALLBACK_LIB = quazip1-qt6
+         else: exists($$QUAZIP_LIB_DIR/quazip-qt6.lib):QUAZIP_FALLBACK_LIB = quazip-qt6
+         else: exists($$QUAZIP_LIB_DIR/quazip1-qt5.lib):QUAZIP_FALLBACK_LIB = quazip1-qt5
+         else: exists($$QUAZIP_LIB_DIR/quazip-qt5.lib):QUAZIP_FALLBACK_LIB = quazip-qt5
+         else: exists($$QUAZIP_LIB_DIR/quazip1.lib):QUAZIP_FALLBACK_LIB = quazip1
+         !isEmpty(QUAZIP_FALLBACK_LIB) {
+            LIBS -= -lquazip
+            LIBS += -l$$QUAZIP_FALLBACK_LIB
+         }
+      }
+   }
 
    RC_FILE = resources/win/OpenBoard.rc
    CONFIG += axcontainer
@@ -145,6 +190,9 @@ win32 {
    system(echo "$$SVN_VERSION" > $$BUILD_DIR/svnversion)
 
    DEFINES += NOMINMAX # avoids compilation error in qdatetime.h
+   # Use the version guards in XPDFRenderer.cpp/.h to select the correct Poppler API.
+   # Do NOT define OPENBOARD_POPPLER_OLD_API here — the vcpkg-installed Poppler lib
+   # exports new API only; the old-API code paths cause LNK2019 against it.
 
 
    # Windows doesn't support file versions with more than 4 fields, so
@@ -532,4 +580,3 @@ INSTALLS = UB_ETC \
 DISTFILES += \
     resources/images/moveDown.svg \
     resources/images/moveDownDisabled.svg
-

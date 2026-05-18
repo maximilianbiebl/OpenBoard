@@ -43,6 +43,7 @@ class UBGraphicsScene;
 class UBGraphicsWidgetItem;
 class UBRubberBand;
 class UBSnapIndicator;
+class UBAudienceToolState;
 
 class UBBoardView : public QGraphicsView
 {
@@ -68,6 +69,9 @@ public:
 
     void setBoxing(const QMargins& margins);
     void updateSnapIndicator(Qt::Corner corner, QPointF snapPoint, double angle = 0);
+    void setAudienceMode(bool enabled);
+    bool isAudienceMode() const { return mAudienceMode; }
+    void setAudienceToolState(UBAudienceToolState* toolState);
 
     // work around for handling tablet events on MAC OS with Qt 4.8.0 and above
 #if defined(Q_OS_OSX)
@@ -151,6 +155,19 @@ private:
     QPointF mPreviousPoint;
     QPoint mMouseDownPos;
 
+    bool mMiddleButtonIsPressed{false};
+    QPointF mMiddleButtonPressPos;
+
+    // Page-border resize state
+    enum class PageResizeEdge { None, Right, Bottom, BottomRight };
+    PageResizeEdge mPageResizeEdge{PageResizeEdge::None};
+    bool mIsResizingPage{false};
+    QPointF mPageResizeStartScene;   // scene pos at press
+    QSize   mPageResizeStartSize;    // nominal size at press
+
+    PageResizeEdge detectPageResizeEdge(const QPoint& viewPos) const;
+    void applyPageResizeCursor(PageResizeEdge edge);
+
     bool mPenPressureSensitive;
     bool mMarkerPressureSensitive;
     bool mUseHighResTabletEvent;
@@ -158,6 +175,8 @@ private:
     QRubberBand *mRubberBand;
     bool mIsCreatingTextZone;
     bool mIsCreatingSceneGrabZone;
+    bool mIsCreatingShape{false};
+    bool mShapeIsEllipse{false};
 
     bool isAbsurdPoint(QPoint point);
 
@@ -209,6 +228,8 @@ private:
     bool bIsControl;
     bool bIsDesktop;
     bool mRubberBandInPlayMode;
+    bool mAudienceMode;
+    QPointer<UBAudienceToolState> mAudienceToolState;
 
     QMargins mMargins{};
     UBSnapIndicator* mSnapIndicator{nullptr};
@@ -222,6 +243,11 @@ private slots:
 public slots:
     void virtualKeyboardActivated(bool b);
     void longPressEvent();
+
+private:
+    QRectF audiencePageRect() const;
+    bool audienceAllowsStylusTool(int tool) const;
+    bool audiencePointInPage(const QPointF& point) const;
 
 };
 

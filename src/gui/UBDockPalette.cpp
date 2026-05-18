@@ -527,6 +527,15 @@ void UBDockPalette::moveTabs()
     mHTab = y;
 
     mTabPalette->move(x,y + mTabPalette->mVerticalOffset);
+    mTabPalette->raise();
+}
+
+void UBTabDockPalette::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    // Raise every time the strip becomes visible so it stays above the canvas
+    // regardless of which widget was shown last during startup.
+    raise();
 }
 void UBDockPalette::resizeTabs()
 {

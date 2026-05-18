@@ -47,9 +47,42 @@
 #include "podcast/UBPodcastController.h"
 
 #include "ui_preferences.h"
+#include "UBShortcutManager.h"
+
+#include <QTableView>
+#include <QHeaderView>
+#include <QVBoxLayout>
+#include <QKeySequenceEdit>
+#include <QStyledItemDelegate>
 
 #include "core/memcheck.h"
 
+
+// Delegate that provides QKeySequenceEdit for column 2 (key sequence) in the shortcuts table.
+class UBKeySeqDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&,
+                          const QModelIndex& index) const override
+    {
+        if (index.column() != 2) return nullptr;
+        return new QKeySequenceEdit(parent);
+    }
+    void setEditorData(QWidget* editor, const QModelIndex& index) const override
+    {
+        static_cast<QKeySequenceEdit*>(editor)->setKeySequence(
+            QKeySequence(index.data(Qt::EditRole).toString()));
+    }
+    void setModelData(QWidget* editor, QAbstractItemModel* model,
+                      const QModelIndex& index) const override
+    {
+        model->setData(index,
+            static_cast<QKeySequenceEdit*>(editor)->keySequence().toString(),
+            Qt::EditRole);
+    }
+};
 
 qreal UBPreferencesController::sSliderRatio = 10.0;
 qreal UBPreferencesController::sMinPenWidth = 0.5;
@@ -350,6 +383,32 @@ void UBPreferencesController::init()
     mMarkerProperties->pressureSensitiveCheckBox->setChecked(settings->boardMarkerPressureSensitive->get().toBool());
 
     mMarkerProperties->opacitySlider->setValue(settings->boardMarkerAlpha->get().toDouble() * 100);
+
+    // ── Keyboard Shortcuts tab (added programmatically) ───────────────────
+    // Only add once — wire() is called from the constructor, so this runs once.
+    if (mPreferencesUI->mainTabWidget->tabText(mPreferencesUI->mainTabWidget->count() - 1) != tr("Shortcuts"))
+    {
+        auto* shortcutsTab = new QWidget();
+        auto* vl = new QVBoxLayout(shortcutsTab);
+        vl->setContentsMargins(4, 4, 4, 4);
+
+        auto* view = new QTableView(shortcutsTab);
+        view->setModel(UBShortcutManager::shortcutManager());
+        view->setSelectionBehavior(QAbstractItemView::SelectRows);
+        view->setSelectionMode(QAbstractItemView::SingleSelection);
+        view->horizontalHeader()->setStretchLastSection(false);
+        view->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+        view->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+        view->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+        view->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+        view->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+        view->setAlternatingRowColors(true);
+        view->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked);
+        view->setItemDelegateForColumn(2, new UBKeySeqDelegate(view));
+        vl->addWidget(view);
+
+        mPreferencesUI->mainTabWidget->addTab(shortcutsTab, tr("Shortcuts"));
+    }
 
 }
 

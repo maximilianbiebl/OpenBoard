@@ -160,6 +160,7 @@ class UBGraphicsScene: public UBCoreGraphicsScene, public UBItem, public std::en
         UBGraphicsMediaItem* addVideo(const QUrl& pVideoFileUrl, bool shouldPlayAsap, const QPointF& pPos = QPointF(0, 0));
         UBGraphicsMediaItem* addAudio(const QUrl& pAudioFileUrl, bool shouldPlayAsap, const QPointF& pPos = QPointF(0, 0));
         UBGraphicsSvgItem* addSvg(const QUrl& pSvgFileUrl, const QPointF& pPos = QPointF(0, 0), const QByteArray pData = QByteArray());
+        UBGraphicsSvgItem* addShape(const QRectF& sceneRect, bool isEllipse, const QColor& color, qreal lineWidth);
         UBGraphicsTextItem* addText(const QString& pString, const QPointF& pTopLeft = QPointF(0, 0));
 
         UBGraphicsTextItem*  addTextWithFont(const QString& pString, const QPointF& pTopLeft = QPointF(0, 0)
@@ -406,6 +407,8 @@ signals:
         void drawPenCircle(const QPointF& pEndPoint);
         void hideMarkerCircle();
         void hidePenCircle();
+        void drawEraserCircle(const QPointF& point);
+        void hideEraserCircle();
         void DisposeMagnifierQWidgets();
 
 
@@ -428,6 +431,7 @@ signals:
         void createPointer();
         void createMarkerCircle();
         void createPenCircle();
+        void createEraserCircle();
         void updateEraserColor();
         void updateMarkerCircleColor();
         void updatePenCircleColor();
@@ -438,6 +442,7 @@ signals:
         QGraphicsEllipseItem* mPointer; // "laser" pointer
         QGraphicsEllipseItem* mMarkerCircle; // dotted circle around marker
         QGraphicsEllipseItem* mPenCircle; // dotted circle around pen
+        QGraphicsEllipseItem* mEraserCircle{nullptr}; // circle showing eraser size on audience screen
 
         QSet<QGraphicsItem*> mAddedItems;
         QSet<QGraphicsItem*> mRemovedItems;

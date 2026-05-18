@@ -59,6 +59,9 @@ public:
     void unsetAssets(int index);
     bool hasAssetsEntry(int index) const;
 
+    QString pageName(int index) const;
+    void setPageName(int index, const QString& name);
+
     // load and save
     bool load();
     void save();

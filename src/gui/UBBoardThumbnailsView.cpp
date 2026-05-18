@@ -27,7 +27,9 @@
 
 
 
+#include <QContextMenuEvent>
 #include <QList>
+#include <QMenu>
 #include <QPointF>
 #include <QPixmap>
 #include <QTransform>
@@ -51,6 +53,7 @@
 #include "gui/UBThumbnail.h"
 #include "gui/UBThumbnailArranger.h"
 #include "gui/UBThumbnailScene.h"
+#include "gui/UBThumbnailTextItem.h"
 
 UBBoardThumbnailsView::UBBoardThumbnailsView(QWidget *parent, const char *name)
     : UBThumbnailsView(parent)
@@ -173,6 +176,17 @@ void UBBoardThumbnailsView::resizeEvent(QResizeEvent *event)
 
 void UBBoardThumbnailsView::mousePressEvent(QMouseEvent *event)
 {
+    // If a text item is being edited, clicking elsewhere should commit the edit
+    // QGraphicsView may not automatically clear focus from the editing item when
+    // clicking on the background, so we do it explicitly here.
+    if (scene() && scene()->focusItem())
+    {
+        QGraphicsItem* focusItem = scene()->focusItem();
+        QGraphicsItem* clickedItem = itemAt(event->pos());
+        if (clickedItem != focusItem && !focusItem->isAncestorOf(clickedItem))
+            scene()->clearFocus();
+    }
+
     // remember currently selected item
     auto selection = scene()->selectedItems();
     // first ask the thumbnails to process the event for the UI buttons
@@ -279,7 +293,48 @@ void UBBoardThumbnailsView::mouseReleaseEvent(QMouseEvent *event)
 
 void UBBoardThumbnailsView::mouseDoubleClickEvent(QMouseEvent* event)
 {
-    // do not forward event to QGraphicsView to avoid change of selection
+    UBThumbnail* item = dynamic_cast<UBThumbnail*>(itemAt(event->pos()));
+    if (!item)
+        return;
+
+    item->startInlineEdit();
+
+    // When the label text item loses focus, save the new name.
+    // UBThumbnailTextItem is a QGraphicsTextItem (QObject), so we can connect directly.
+    UBThumbnailTextItem* textItem = item->labelItem();
+    if (!textItem)
+        return;
+
+    // Use a single-shot connection so only one save fires per edit session.
+    connect(textItem, &UBThumbnailTextItem::editingFinished, this,
+        [item](const QString& newName) {
+            int pageIndex = item->sceneIndex();
+            UBApplication::boardController->setPageName(pageIndex, newName);
+            item->setPageLabel(newName);
+        }, Qt::SingleShotConnection);
+}
+
+void UBBoardThumbnailsView::contextMenuEvent(QContextMenuEvent* event)
+{
+    UBThumbnail* item = dynamic_cast<UBThumbnail*>(itemAt(event->pos()));
+    if (!item)
+        return;
+
+    QMenu menu(this);
+    QAction* renameAction = menu.addAction(tr("Rename Page..."));
+    if (menu.exec(event->globalPos()) == renameAction)
+    {
+        item->startInlineEdit();
+        UBThumbnailTextItem* textItem = item->labelItem();
+        if (!textItem)
+            return;
+        connect(textItem, &UBThumbnailTextItem::editingFinished, this,
+            [item](const QString& newName) {
+                int pageIndex = item->sceneIndex();
+                UBApplication::boardController->setPageName(pageIndex, newName);
+                item->setPageLabel(newName);
+            }, Qt::SingleShotConnection);
+    }
 }
 
 void UBBoardThumbnailsView::scrollContentsBy(int dx, int dy)

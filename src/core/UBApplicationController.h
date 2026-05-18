@@ -51,6 +51,7 @@ class UBSoftwareUpdate;
 class QNetworkAccessManager;
 class QNetworkReply;
 class UBRightPalette;
+class UBPresentationManager;
 
 class UBApplicationController : public QObject
 {
@@ -113,6 +114,7 @@ class UBApplicationController : public QObject
         }
 
         QStringList widgetInlineJavaScripts();
+        UBPresentationManager* presentationManager() const { return mPresentationManager; }
 
     signals:
         void mainModeChanged(UBApplicationController::MainMode pMode);
@@ -136,6 +138,7 @@ class UBApplicationController : public QObject
         void hideDesktop();
 
         void useMultiScreen(bool use);
+        void setPresentationEnabled(bool enabled);
 
         void actionCut();
         void actionCopy();
@@ -162,6 +165,7 @@ class UBApplicationController : public QObject
         std::shared_ptr<UBGraphicsScene> mBlackScene;
 
         UBScreenMirror* mMirror;
+        UBPresentationManager* mPresentationManager;
 
         int mInitialHScroll, mInitialVScroll;
 

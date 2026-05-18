@@ -74,7 +74,9 @@ struct UBStylusTool
         Pointer,
         Line,
         Text,
-        Capture
+        Capture,
+        Rectangle,
+        Ellipse
     };
 };
 
@@ -227,7 +229,8 @@ enum UBPageBackground
 {
     plain = 0,
     crossed,
-    ruled
+    ruled,
+    dotted
 };
 
 /*

@@ -16,23 +16,31 @@ REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 REM ---------------------------------------------------------------------
 
 set SCRIPT_PATH=%~dp0
-set PROJECT_ROOT=%SCRIPT_PATH%\..\..
 
-set APPLICATION_NAME=OpenBoard
-set QT_DIR=D:\qt\x64-windows
-set QT_BIN=%QT_DIR%\tools\Qt6\bin
+REM Resolve PROJECT_ROOT to an absolute path for Inno Setup
+pushd %SCRIPT_PATH%\..\..
+set PROJECT_ROOT=%CD%
+popd
 
-set PROGRAMS_FILE_PATH=C:\Program Files (x86)
-
-set GIT_BIN=C:\Program Files\Git\bin
-set VS_BIN=%PROGRAMS_FILE_PATH%\Microsoft Visual Studio 14.0\VC\bin
-set WIN_SDK_BIN=%PROGRAMS_FILE_PATH%\Microsoft SDKs\Windows\v6.0A\Bin
-set INNO_EXE=%PROGRAMS_FILE_PATH%\Inno Setup 6\iscc.exe
+set APPLICATION_NAME=BoardPresenter
+set PRO_FILE=OpenBoard
+if "%QT_DIR%"=="" set QT_DIR=C:\Qt\6.6.3\msvc2022_64
+if "%QT_BIN%"=="" set QT_BIN=%QT_DIR%\bin
+if "%INNO_EXE%"=="" (
+    for %%I in (iscc.exe) do set INNO_EXE=%%~$PATH:I
+)
+if "%INNO_EXE%"=="" if exist "%ProgramFiles(x86)%\Inno Setup 6\iscc.exe" set INNO_EXE=%ProgramFiles(x86)%\Inno Setup 6\iscc.exe
+if "%INNO_EXE%"=="" if exist "%ProgramFiles%\Inno Setup 6\iscc.exe" set INNO_EXE=%ProgramFiles%\Inno Setup 6\iscc.exe
+if "%OPENBOARD_VCVARS%"=="" if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
+    for /f "usebackq tokens=*" %%I in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set OPENBOARD_VCVARS=%%I\VC\Auxiliary\Build\vcvars64.bat
+)
+if exist "%OPENBOARD_VCVARS%" call "%OPENBOARD_VCVARS%"
 set BUILD_DIR=%PROJECT_ROOT%\build\win32\release
+set INSTALLER_DIR=%BUILD_DIR%\installer
 set LRELEASE=%QT_BIN%\lrelease.exe
-set BASE_QT_TRANSLATIONS_DIRECTORY=%QT_DIR%\translations\Qt6
+set BASE_QT_TRANSLATIONS_DIRECTORY=%QT_DIR%\translations
 
-set PATH=%QT_BIN%;%PATH%;%WIN_SDK_BIN%;%GIT_BIN%
+set PATH=%QT_BIN%;%PATH%
 
 echo %PATH%
 
@@ -44,7 +52,12 @@ set VERSION=%VERSION: =%
 
 echo "VERSION :  %VERSION%"
 
-call "%INNO_EXE%" "%SCRIPT_PATH%\%APPLICATION_NAME%.iss" /F"%APPLICATION_NAME%_Installer_%VERSION%"
+if not exist "%INNO_EXE%" (
+    echo "Inno Setup compiler not found. Set INNO_EXE or run setup-windows-env.ps1"
+    GOTO EXIT_WITH_ERROR
+)
+
+call "%INNO_EXE%" "%SCRIPT_PATH%\%PRO_FILE%.iss" /F"%APPLICATION_NAME%_Installer_%VERSION%"
 
 :EXIT_WITH_ERROR
 echo "Error found"
@@ -55,5 +68,6 @@ GOTO END
 
 :END
 echo "%APPLICATION_NAME% setup created"
+echo "Installer output: %INSTALLER_DIR%"
 
 :EOF

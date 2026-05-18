@@ -56,6 +56,7 @@
 #include "document/UBDocument.h"
 #include "document/UBDocumentController.h"
 #include "document/UBDocumentProxy.h"
+#include "document/UBDocumentToc.h"
 
 #include "domain/UBGraphicsGroupContainerItem.h"
 #include "domain/UBGraphicsItemUndoCommand.h"
@@ -203,6 +204,27 @@ int UBBoardController::currentPage() const
     return mActiveSceneIndex + 1;
 }
 
+QString UBBoardController::pageName(int index)
+{
+    auto doc = selectedDocument();
+    if (!doc || doc->persistencePath().isEmpty())
+        return {};
+    UBDocumentToc toc{doc->persistencePath()};
+    toc.load();
+    return toc.pageName(index);
+}
+
+void UBBoardController::setPageName(int index, const QString& name)
+{
+    auto doc = selectedDocument();
+    if (!doc || doc->persistencePath().isEmpty())
+        return;
+    UBDocumentToc toc{doc->persistencePath()};
+    toc.load();
+    toc.setPageName(index, name);
+    toc.save();
+}
+
 void UBBoardController::setupViews()
 {
     mControlContainer = new QWidget(mMainWindow->centralWidget());
@@ -228,7 +250,7 @@ void UBBoardController::setupViews()
     // TODO UB 4.x Optimization do we have to create the display view even if their is
     // only 1 screen
     //
-    mDisplayView = new UBBoardView(this, UBItemLayerType::FixedBackground, UBItemLayerType::Tool, 0);
+    mDisplayView = new UBBoardView(this, UBItemLayerType::FixedBackground, UBItemLayerType::Tool, 0, true, false);
     mDisplayView->setInteractive(false);
     mDisplayView->setTransformationAnchor(QGraphicsView::NoAnchor);
 

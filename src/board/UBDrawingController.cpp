@@ -78,6 +78,8 @@ UBDrawingController::UBDrawingController(QObject * parent)
     connect(UBApplication::mainWindow->actionLine, SIGNAL(triggered(bool)), this, SLOT(lineToolSelected(bool)));
     connect(UBApplication::mainWindow->actionText, SIGNAL(triggered(bool)), this, SLOT(textToolSelected(bool)));
     connect(UBApplication::mainWindow->actionCapture, SIGNAL(triggered(bool)), this, SLOT(captureToolSelected(bool)));
+    connect(UBApplication::mainWindow->actionRectangle, SIGNAL(triggered(bool)), this, SLOT(rectangleToolSelected(bool)));
+    connect(UBApplication::mainWindow->actionEllipse, SIGNAL(triggered(bool)), this, SLOT(ellipseToolSelected(bool)));
 }
 
 
@@ -105,12 +107,15 @@ void UBDrawingController::setStylusTool(int tool)
     {
         UBApplication::boardController->activeScene()->deselectAllItems();
         if (mStylusTool == UBStylusTool::Pen || mStylusTool == UBStylusTool::Marker
-                || mStylusTool == UBStylusTool::Line)
+                || mStylusTool == UBStylusTool::Line
+                || mStylusTool == UBStylusTool::Rectangle
+                || mStylusTool == UBStylusTool::Ellipse)
         {
             mLatestDrawingTool = mStylusTool;
         }
 
-        if (tool == UBStylusTool::Pen || tool == UBStylusTool::Line)
+        if (tool == UBStylusTool::Pen || tool == UBStylusTool::Line
+                || tool == UBStylusTool::Rectangle || tool == UBStylusTool::Ellipse)
         {
              emit lineWidthIndexChanged(UBSettings::settings()->penWidthIndex());
              emit colorIndexChanged(UBSettings::settings()->penColorIndex());
@@ -149,6 +154,10 @@ void UBDrawingController::setStylusTool(int tool)
             UBApplication::mainWindow->actionText->setChecked(true);
         else if (mStylusTool == UBStylusTool::Capture)
             UBApplication::mainWindow->actionCapture->setChecked(true);
+        else if (mStylusTool == UBStylusTool::Rectangle)
+            UBApplication::mainWindow->actionRectangle->setChecked(true);
+        else if (mStylusTool == UBStylusTool::Ellipse)
+            UBApplication::mainWindow->actionEllipse->setChecked(true);
 
 
         // workaround for #827
@@ -202,12 +211,12 @@ int UBDrawingController::currentToolWidthIndex()
 
 qreal UBDrawingController::currentToolWidth()
 {
-    if (stylusTool() == UBStylusTool::Pen || stylusTool() == UBStylusTool::Line)
+    if (stylusTool() == UBStylusTool::Pen || stylusTool() == UBStylusTool::Line
+            || stylusTool() == UBStylusTool::Rectangle || stylusTool() == UBStylusTool::Ellipse)
         return UBSettings::settings()->currentPenWidth();
     else if (stylusTool() == UBStylusTool::Marker)
         return UBSettings::settings()->currentMarkerWidth();
     else
-        //failsafe
         return UBSettings::settings()->currentPenWidth();
 }
 
@@ -258,7 +267,8 @@ QColor UBDrawingController::currentToolColor()
 
 QColor UBDrawingController::toolColor(bool onDarkBackground)
 {
-    if (stylusTool() == UBStylusTool::Pen || stylusTool() == UBStylusTool::Line)
+    if (stylusTool() == UBStylusTool::Pen || stylusTool() == UBStylusTool::Line
+            || stylusTool() == UBStylusTool::Rectangle || stylusTool() == UBStylusTool::Ellipse)
     {
         return UBSettings::settings()->penColor(onDarkBackground);
     }
@@ -444,5 +454,17 @@ void UBDrawingController::captureToolSelected(bool checked)
 {
     if (checked)
         setStylusTool(UBStylusTool::Capture);
+}
+
+void UBDrawingController::rectangleToolSelected(bool checked)
+{
+    if (checked)
+        setStylusTool(UBStylusTool::Rectangle);
+}
+
+void UBDrawingController::ellipseToolSelected(bool checked)
+{
+    if (checked)
+        setStylusTool(UBStylusTool::Ellipse);
 }
 

@@ -1,0 +1,17 @@
+Fehlerursache (Qt 6 / MSVC):
+In UBAudienceWindow.h wird QPointer<UBBoardView> verwendet, aber UBBoardView
+war nur vorwärts deklariert. Mit Qt 6 muss der Typ an dieser Stelle
+vollständig bekannt sein (QObject-Ableitung), sonst scheitert der
+static_cast in qpointer.h.
+
+Lösung:
+- UBAudienceWindow.h bindet jetzt die benötigten Header ein:
+  - board/UBBoardView.h
+  - core/UBAudienceToolState.h
+Damit kennt der Compiler die QObject-Vererbung und der QPointer-Cast
+kompiliert.
+
+Hinweis zu den D9025-Warnungen:
+"/O2" wird durch "/Od" überschrieben, weil Release- und Debug-Flags
+gleichzeitig gesetzt sind. Das ist eine Warnung und nicht die Ursache
+des Fehlers; für einen Release-Build sollten Debug-Flags entfernt werden.
